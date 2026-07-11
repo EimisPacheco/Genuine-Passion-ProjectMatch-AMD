@@ -14,7 +14,7 @@ from backend.app.agents.base import agent_step, new_id
 from backend.app.agents.common import DOMAIN_VOCAB, TECH_VOCAB, evidence_text, heuristic_tags
 from backend.app.graph.state import ProjectMatchState
 from backend.app.llm import embeddings
-from integrations.scrapers import dispatch
+from integrations.scrapers import dispatch, github_api
 
 
 def run(state: ProjectMatchState) -> dict[str, Any]:
@@ -28,6 +28,13 @@ def run(state: ProjectMatchState) -> dict[str, Any]:
         live_mode = state.get("live_mode")
         for cand in candidates:
             cid = cand["id"]
+            # Surface the candidate's self-reported location (from their public
+            # GitHub profile) so the Map view can place them — best-effort.
+            if live_mode and not cand.get("location") and cand.get("github_handle"):
+                try:
+                    cand["location"] = github_api.fetch_user_profile(cand["github_handle"]).get("location", "")
+                except Exception:
+                    pass
             items = dispatch.discover(cand, live_mode=live_mode)
             for ev in items:
                 # Tag live evidence from the shared vocab (seeded evidence already

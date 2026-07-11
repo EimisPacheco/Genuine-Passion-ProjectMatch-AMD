@@ -41,6 +41,13 @@ def health() -> dict[str, Any]:
     }
 
 
+@router.get("/config")
+def public_config() -> dict[str, Any]:
+    """Client-safe config for the frontend. The Maps key is a referrer-restricted
+    browser key, so serving it here is expected (not a server secret)."""
+    return {"google_maps_api_key": settings.google_maps_api_key}
+
+
 # ----------------------------- speed race -----------------------------
 @router.get("/race/info")
 def race_info() -> dict[str, Any]:
@@ -192,6 +199,7 @@ def ranked_candidates(analysis_id: str) -> dict[str, Any]:
             **r,
             "name": names.get(cid, {}).get("name", cid),
             "headline": names.get(cid, {}).get("headline", ""),
+            "location": names.get(cid, {}).get("location", ""),
             "selected": r["rank"] <= top_n,
             "narrative": narratives.get(cid, {}),
         })

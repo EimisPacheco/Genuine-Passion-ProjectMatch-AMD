@@ -199,6 +199,7 @@ def fetch_user_profile(handle: str) -> dict[str, Any]:
         "blog": blog,
         "twitter": twitter,
         "company": u.get("company") or "",
+        "location": (u.get("location") or "").strip(),  # self-reported city/region
         "extra_urls": extra,
     }
 

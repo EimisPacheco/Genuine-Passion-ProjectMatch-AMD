@@ -5,6 +5,7 @@ export type Candidate = {
   candidate_id: string;
   name: string;
   headline: string;
+  location?: string;
   rank: number;
   selected: boolean;
   overall_score: number;
@@ -66,6 +67,7 @@ async function j<T>(r: Response): Promise<T> {
 
 export const api = {
   defaults: () => fetch("/api/demo/defaults").then(j<any>),
+  config: () => fetch("/api/config").then(j<{ google_maps_api_key: string }>),
   health: () => fetch("/api/health").then(j<any>),
   raceInfo: () => fetch("/api/race/info").then(j<any>),
   createAnalysis: (body: any) =>

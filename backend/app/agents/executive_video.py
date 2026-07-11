@@ -66,6 +66,7 @@ def _build_scenes(company, selected, narratives, candidates) -> list[Scene]:
             f"toward this exact mission."
         ),
         subtitle_label=f"Company project: {title}",
+        max_duration=30.0,  # intro ≤ 30s
     ))
 
     # Scene 2 — ranking overview
@@ -85,6 +86,7 @@ def _build_scenes(company, selected, narratives, candidates) -> list[Scene]:
             )
         ),
         subtitle_label="Candidate ranking overview",
+        max_duration=20.0,
     ))
 
     # Scene 3+ — per candidate
@@ -106,6 +108,7 @@ def _build_scenes(company, selected, narratives, candidates) -> list[Scene]:
                 f"{r['genuine_passion']:.0%}. {r['recommendation']}."
             ),
             subtitle_label=f"#{r['rank']} {_name(candidates, cid)}",
+            max_duration=30.0,  # ≤ 30s per candidate
         ))
 
     # Final scene — recommendation
@@ -119,6 +122,7 @@ def _build_scenes(company, selected, narratives, candidates) -> list[Scene]:
             "and every recommendation is backed by verifiable public evidence."
         ),
         subtitle_label="Recommendation summary",
+        max_duration=20.0,
     ))
     return scenes
 

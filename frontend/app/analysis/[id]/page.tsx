@@ -9,7 +9,7 @@ import { EvidenceCard } from "@/components/openui/EvidenceCard";
 import { AgentProgressList } from "@/components/openui/AgentProgressList";
 import { RacePanel } from "@/components/RacePanel";
 
-const TABS = ["Progress", "⚡ Speed", "Rankings", "Candidate", "Evidence", "Video", "Traces"] as const;
+const TABS = ["Progress", "⚡ Speed", "Rankings", "Candidate", "📍 Map", "Evidence", "Video", "Traces"] as const;
 type Tab = (typeof TABS)[number];
 
 export default function AnalysisPage({ params }: { params: { id: string } }) {
@@ -104,6 +104,7 @@ export default function AnalysisPage({ params }: { params: { id: string } }) {
       )}
       {tab === "Rankings" && <Rankings candidates={candidates} onPick={(c) => { setSelectedCid(c); setTab("Candidate"); }} />}
       {tab === "Candidate" && <CandidateDetail id={id} candidates={candidates} cid={selectedCid} setCid={setSelectedCid} onEvidence={() => setTab("Evidence")} />}
+      {tab === "📍 Map" && <CandidateMap candidates={candidates} onPick={(c) => { setSelectedCid(c); setTab("Candidate"); }} />}
       {tab === "Evidence" && <EvidenceExplorer id={id} candidates={candidates} cid={selectedCid} setCid={setSelectedCid} />}
       {tab === "Video" && <VideoViewer id={id} status={status} />}
       {tab === "Traces" && <Traces id={id} events={events} />}
@@ -136,6 +137,131 @@ function Rankings({ candidates, onPick }: { candidates: Candidate[]; onPick: (ci
       )}
     </div>
   );
+}
+
+// Load the Google Maps JS API once (shared across mounts).
+let mapsPromise: Promise<any> | null = null;
+function loadGoogleMaps(key: string): Promise<any> {
+  if (typeof window === "undefined") return Promise.reject(new Error("no window"));
+  const w = window as any;
+  if (w.google?.maps) return Promise.resolve(w.google);
+  if (mapsPromise) return mapsPromise;
+  mapsPromise = new Promise((resolve, reject) => {
+    const s = document.createElement("script");
+    s.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(key)}`;
+    s.async = true;
+    s.onload = () => resolve((window as any).google);
+    s.onerror = () => { mapsPromise = null; reject(new Error("maps load failed")); };
+    document.head.appendChild(s);
+  });
+  return mapsPromise;
+}
+
+function CandidateMap({ candidates, onPick }: { candidates: Candidate[]; onPick: (cid: string) => void }) {
+  const [apiKey, setApiKey] = useState<string | null>(null); // null=loading, ""=none
+  const [mapsFailed, setMapsFailed] = useState(false);
+  useEffect(() => {
+    api.config().then((c) => setApiKey(c.google_maps_api_key || "")).catch(() => setApiKey(""));
+  }, []);
+
+  if (!candidates.length) return <Empty msg="The map appears when the analysis finishes." />;
+  const located = candidates.filter((c) => (c.location || "").trim());
+  const missing = candidates.length - located.length;
+  const useJs = !!apiKey && !mapsFailed;
+
+  return (
+    <div className="space-y-4">
+      <div className="card">
+        <h3 className="font-semibold text-slate-100">Where these builders are</h3>
+        <p className="mt-1 text-sm text-slate-400">
+          Each pin is the candidate’s <b>self-reported location</b> from their public profile
+          (city / region — public profiles don’t expose street addresses). Geocoded and rendered by Google Maps.
+        </p>
+        {missing > 0 && (
+          <p className="mt-2 text-xs text-slate-500">
+            {missing} candidate{missing > 1 ? "s" : ""} did not list a public location.
+          </p>
+        )}
+      </div>
+
+      {!located.length ? (
+        <Empty msg="None of these candidates listed a public location." />
+      ) : useJs ? (
+        <div className="card p-0 overflow-hidden">
+          <GoogleCombinedMap candidates={located} apiKey={apiKey!} onFail={() => setMapsFailed(true)} />
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          {located.map((c) => (
+            <div key={c.candidate_id} className="card overflow-hidden p-0">
+              <div className="flex items-center justify-between gap-2 p-4">
+                <div className="min-w-0">
+                  <button onClick={() => onPick(c.candidate_id)} className="truncate text-left font-semibold text-slate-100 hover:text-brand">
+                    #{c.rank} {c.name}
+                  </button>
+                  <div className="mt-0.5 flex items-center gap-1.5 text-sm text-slate-400">
+                    <span>📍</span><span className="truncate">{c.location}</span>
+                  </div>
+                </div>
+                {c.selected && <span className="chip shrink-0">Top pick</span>}
+              </div>
+              <iframe
+                title={`Map of ${c.location}`}
+                className="h-56 w-full border-0"
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+                src={`https://www.google.com/maps?q=${encodeURIComponent(c.location || "")}&z=5&output=embed`}
+              />
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function GoogleCombinedMap(
+  { candidates, apiKey, onFail }: { candidates: Candidate[]; apiKey: string; onFail: () => void },
+) {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    let cancelled = false;
+    loadGoogleMaps(apiKey)
+      .then((google) => {
+        if (cancelled || !ref.current) return;
+        const map = new google.maps.Map(ref.current, {
+          center: { lat: 20, lng: 0 }, zoom: 2,
+          mapTypeControl: false, streetViewControl: false, fullscreenControl: false,
+        });
+        const geocoder = new google.maps.Geocoder();
+        const bounds = new google.maps.LatLngBounds();
+        const info = new google.maps.InfoWindow();
+        let placed = 0;
+        candidates.forEach((c) => {
+          geocoder.geocode({ address: c.location }, (results: any, status: string) => {
+            if (cancelled || status !== "OK" || !results?.[0]) return;
+            const pos = results[0].geometry.location;
+            const marker = new google.maps.Marker({
+              position: pos, map, title: `#${c.rank} ${c.name} — ${c.location}`,
+            });
+            marker.addListener("click", () => {
+              info.setContent(
+                `<div style="color:#0f172a;font:13px system-ui"><b>#${c.rank} ${c.name}</b><br/>${c.location || ""}</div>`,
+              );
+              info.open(map, marker);
+            });
+            bounds.extend(pos);
+            placed++;
+            if (placed === 1) { map.setCenter(pos); map.setZoom(4); }
+            else map.fitBounds(bounds);
+          });
+        });
+      })
+      .catch(() => { if (!cancelled) onFail(); });
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [apiKey, candidates]);
+  return <div ref={ref} className="h-[28rem] w-full" />;
 }
 
 function CandidatePicker({ candidates, cid, setCid }: { candidates: Candidate[]; cid: string; setCid: (c: string) => void }) {

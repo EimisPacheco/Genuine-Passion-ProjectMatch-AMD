@@ -37,7 +37,28 @@ class Scene:
     narration: str
     subtitle_label: str = ""
     duration: float = 0.0
+    max_duration: float | None = None  # hard cap on this scene's length (seconds)
     audio: Path | None = field(default=None)
+
+
+# Rough spoken-word pace used to trim narration so the audio finishes within a
+# scene's max_duration (rather than cutting mid-word).
+_WORDS_PER_SEC = 2.6
+
+
+def _trim_to_duration(text: str, seconds: float) -> str:
+    """Shorten narration to comfortably fit `seconds` of speech, ending on a
+    sentence boundary when possible."""
+    budget = max(8, int(seconds * _WORDS_PER_SEC))
+    words = text.split()
+    if len(words) <= budget:
+        return text
+    clipped = " ".join(words[:budget])
+    for end in (". ", "! ", "? "):
+        idx = clipped.rfind(end)
+        if idx > len(clipped) * 0.5:
+            return clipped[: idx + 1]
+    return clipped.rstrip(",;:") + "."
 
 
 @dataclass
@@ -63,12 +84,14 @@ def render(scenes: list[Scene], out_dir: Path, basename: str = "executive_summar
     out_dir.mkdir(parents=True, exist_ok=True)
     work = Path(tempfile.mkdtemp(prefix="pm_video_"))
 
-    # 1. narration + audio + durations
+    # 1. narration + audio + durations (respecting each scene's max_duration)
     for i, scene in enumerate(scenes):
+        if scene.max_duration:
+            scene.narration = _trim_to_duration(scene.narration, scene.max_duration)
         audio_path = work / f"scene_{i}.wav"
         audio, dur = tts.synthesize(scene.narration, audio_path)
         scene.audio = audio
-        scene.duration = dur
+        scene.duration = min(dur, scene.max_duration) if scene.max_duration else dur
 
     # 2. script + srt always
     script_path = out_dir / f"{basename}.txt"
@@ -112,9 +135,10 @@ def _render_mp4(scenes: list[Scene], work: Path, out: Path) -> Path:
 def _segment(slide: Path, scene: Scene, out: Path) -> None:
     cmd = ["ffmpeg", "-y", "-loop", "1", "-i", str(slide)]
     if scene.audio and scene.audio.exists():
-        cmd += ["-i", str(scene.audio), "-c:a", "aac", "-b:a", "128k", "-shortest"]
-    else:
-        cmd += ["-t", str(scene.duration)]
+        cmd += ["-i", str(scene.audio), "-c:a", "aac", "-b:a", "128k"]
+    # Bound the segment to the (possibly capped) scene duration. This truncates
+    # audio that runs past a scene's max_duration and sets length when muted.
+    cmd += ["-t", str(round(scene.duration, 2))]
     cmd += ["-c:v", "libx264", "-tune", "stillimage", "-pix_fmt", "yuv420p",
             "-vf", f"scale={W}:{H}", "-r", "30", str(out)]
     subprocess.run(cmd, check=True, capture_output=True)

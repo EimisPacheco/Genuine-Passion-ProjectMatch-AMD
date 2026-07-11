@@ -61,6 +61,10 @@ class Settings(BaseSettings):
     # GitHub
     github_token: str = ""
 
+    # Google Maps — client-side (referrer-restricted) key for the candidate Map
+    # view. Absent → the Map view falls back to keyless per-candidate embeds.
+    google_maps_api_key: str = ""
+
     # Bright Data Web Unlocker — primary unblock layer for bot-protected sources
     # (LinkedIn, Medium, lablab). Returns rendered HTML past blocks/Cloudflare.
     brightdata_api_token: str = ""

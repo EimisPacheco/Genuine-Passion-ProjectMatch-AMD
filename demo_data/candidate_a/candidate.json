@@ -1,0 +1,81 @@
+{
+  "id": "cand_ava_nguyen",
+  "name": "Yohei Nakajima",
+  "headline": "Builder of autonomous AI agents · creator of BabyAGI",
+  "github_handle": "yoheinakajima",
+  "location": "San Francisco, CA",
+  "sources": [
+    "https://github.com/yoheinakajima",
+    "https://devpost.com/yoheinakajima",
+    "https://twitter.com/yoheinakajima"
+  ],
+  "evidence": [
+    {
+      "source": "github",
+      "title": "babyagi — autonomous task-driven AI agent",
+      "url": "https://github.com/yoheinakajima/babyagi",
+      "description": "A widely-referenced autonomous agent that uses an LLM to create, prioritize, and execute tasks in a loop toward an objective. Demonstrates multi-step planning, task management, and an extensible agent framework. 20k+ stars, active community.",
+      "technologies": ["Python", "LLMs", "Autonomous agents", "Vector search", "OpenAI"],
+      "domain_tags": ["ai-agents", "autonomous-agents", "multi-agent", "developer-tools"],
+      "feature_tags": ["task-planning", "multi-agent-orchestration", "agent-framework"],
+      "evidence_date": "2025-10-12",
+      "confidence": 0.96
+    },
+    {
+      "source": "github",
+      "title": "ditto — self-building coding agent",
+      "url": "https://github.com/yoheinakajima/ditto",
+      "description": "An experimental agent that takes a simple description and autonomously builds a multi-file Flask application via a planner-plus-executor loop. Hands-on multi-agent / tool-use engineering.",
+      "technologies": ["Python", "LLMs", "Agents", "Flask"],
+      "domain_tags": ["ai-agents", "autonomous-agents", "developer-tools"],
+      "feature_tags": ["code-generation", "planning", "tool-use"],
+      "evidence_date": "2025-08-22",
+      "confidence": 0.9
+    },
+    {
+      "source": "github",
+      "title": "GitHub profile — prolific public agent experiments",
+      "url": "https://github.com/yoheinakajima",
+      "description": "Public repositories showing consistent, self-initiated work on autonomous agents, knowledge graphs, and LLM tooling over multiple years.",
+      "technologies": ["Python", "LLMs", "Agents", "Knowledge graphs"],
+      "domain_tags": ["ai-agents", "autonomous-agents", "research-automation"],
+      "feature_tags": ["voluntary-effort", "domain-consistency"],
+      "evidence_date": "2025-12-01",
+      "confidence": 0.88
+    },
+    {
+      "source": "devpost",
+      "title": "Devpost profile — hackathon agent projects",
+      "url": "https://devpost.com/yoheinakajima",
+      "description": "Public Devpost profile listing hackathon participation and projects centered on AI agents and automation.",
+      "technologies": ["LLMs", "Agents"],
+      "domain_tags": ["ai-agents", "autonomous-agents"],
+      "feature_tags": ["hackathon", "demo"],
+      "evidence_date": "2025-09-05",
+      "confidence": 0.74
+    },
+    {
+      "source": "youtube",
+      "title": "Public demos & write-ups on building AI agents",
+      "url": "https://twitter.com/yoheinakajima",
+      "description": "Regularly shares agent experiments, demos, and write-ups publicly — a strong signal of sustained, voluntary interest in autonomous agents.",
+      "technologies": ["AI agents", "LLMs"],
+      "domain_tags": ["ai-agents", "autonomous-agents"],
+      "feature_tags": ["voluntary-effort", "thought-leadership"],
+      "evidence_date": "2025-11-20",
+      "confidence": 0.7
+    }
+  ],
+  "portfolio_images": [
+    {
+      "file": "images/babyagi-architecture.png",
+      "title": "BabyAGI task-loop architecture",
+      "source_url": "https://github.com/yoheinakajima/babyagi"
+    },
+    {
+      "file": "images/ditto-demo.png",
+      "title": "Ditto — self-building agent demo",
+      "source_url": "https://github.com/yoheinakajima/ditto"
+    }
+  ]
+}

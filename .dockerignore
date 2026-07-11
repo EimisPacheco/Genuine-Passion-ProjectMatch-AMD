@@ -1,0 +1,14 @@
+.git
+.venv311
+**/.venv*
+**/node_modules
+frontend
+**/__pycache__
+**/*.pyc
+video/out/*
+!video/out/featured.mp4
+*.csv
+.env
+docs/*.png
+docs/*.jpg
+docs/*.svg

@@ -1,0 +1,82 @@
+{
+  "id": "cand_marco_silva",
+  "name": "Abhishek Thakur",
+  "headline": "World's first 4x Kaggle Grandmaster · ML engineer",
+  "github_handle": "abhishekkrthakur",
+  "location": "Norway",
+  "sources": [
+    "https://github.com/abhishekkrthakur",
+    "https://www.kaggle.com/abhishek",
+    "https://huggingface.co/abhishek",
+    "https://www.youtube.com/@abhishekkrthakur"
+  ],
+  "evidence": [
+    {
+      "source": "github",
+      "title": "approachingalmost — Approaching (Almost) Any ML Problem",
+      "url": "https://github.com/abhishekkrthakur/approachingalmost",
+      "description": "Open-source book and code covering practical machine learning end to end — cross-validation, feature engineering, model training, and evaluation. Thousands of stars; a reference for applied ML.",
+      "technologies": ["Python", "scikit-learn", "PyTorch", "Machine learning"],
+      "domain_tags": ["machine-learning", "data-science", "ml-engineering"],
+      "feature_tags": ["model-training", "evaluation-rigor", "education"],
+      "evidence_date": "2025-07-18",
+      "confidence": 0.93
+    },
+    {
+      "source": "kaggle",
+      "title": "Kaggle profile — 4x Grandmaster (first ever)",
+      "url": "https://www.kaggle.com/abhishek",
+      "description": "Public Kaggle profile: world's first quadruple Grandmaster across competitions, notebooks, datasets, and discussion. Years of sustained competitive ML.",
+      "technologies": ["Python", "Machine learning", "Deep learning"],
+      "domain_tags": ["machine-learning", "data-science", "kaggle"],
+      "feature_tags": ["competition-wins", "domain-consistency"],
+      "evidence_date": "2025-11-02",
+      "confidence": 0.95
+    },
+    {
+      "source": "kaggle",
+      "title": "Public Kaggle notebooks",
+      "url": "https://www.kaggle.com/code/abhishek",
+      "description": "Public notebooks demonstrating reproducible modeling pipelines and competition write-ups.",
+      "technologies": ["Python", "Pandas", "PyTorch"],
+      "domain_tags": ["machine-learning", "data-science"],
+      "feature_tags": ["reproducibility", "writeups"],
+      "evidence_date": "2025-09-28",
+      "confidence": 0.85
+    },
+    {
+      "source": "blog",
+      "title": "Hugging Face — AutoTrain & open models",
+      "url": "https://huggingface.co/abhishek",
+      "description": "Hugging Face profile with open models and AutoTrain work — no-code/low-code model training tooling for the community.",
+      "technologies": ["Transformers", "PyTorch", "AutoTrain"],
+      "domain_tags": ["machine-learning", "nlp", "developer-tools"],
+      "feature_tags": ["tooling", "open-source"],
+      "evidence_date": "2025-10-10",
+      "confidence": 0.82
+    },
+    {
+      "source": "youtube",
+      "title": "YouTube — applied ML tutorials",
+      "url": "https://www.youtube.com/@abhishekkrthakur",
+      "description": "Long-running channel teaching applied machine learning, competitions, and MLOps — consistent voluntary public output.",
+      "technologies": ["Machine learning", "MLOps"],
+      "domain_tags": ["machine-learning", "education"],
+      "feature_tags": ["voluntary-effort", "thought-leadership"],
+      "evidence_date": "2025-12-03",
+      "confidence": 0.7
+    }
+  ],
+  "portfolio_images": [
+    {
+      "file": "images/ml-pipeline-architecture.png",
+      "title": "Applied ML training pipeline",
+      "source_url": "https://github.com/abhishekkrthakur/approachingalmost"
+    },
+    {
+      "file": "images/kaggle-dashboard.png",
+      "title": "Kaggle competition leaderboard",
+      "source_url": "https://www.kaggle.com/abhishek"
+    }
+  ]
+}

@@ -1,0 +1,41 @@
+# ===== Secrets — NEVER commit =====
+.env
+.env.*
+!.env.example
+# GCP service-account key (contains a private key)
+gcp-sa-key.json
+*-sa-key.json
+*service-account*.json
+
+# Python
+.venv/
+.venv311/
+.venv*/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Node / Next
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+node_modules/
+
+# Video outputs
+video/out/*.mp4
+video/out/*.srt
+video/out/*.txt
+
+# OS / editor
+.DS_Store
+*.log
+
+# Keep the app's featured recommendation video (served by the Video tab)
+!video/out/featured.mp4
+
+# AWS / cloud credential files — NEVER commit
+*accessKeys*.csv
+credentials.csv
+*_accessKeys*.csv
+*.pem
+aws-credentials*

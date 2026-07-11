@@ -1,0 +1,64 @@
+{
+  "id": "cand_priya_rao",
+  "name": "Steven Tey",
+  "headline": "Full-stack engineer · builds open-source AI web apps",
+  "github_handle": "steven-tey",
+  "location": "San Francisco, CA",
+  "sources": [
+    "https://github.com/steven-tey",
+    "https://github.com/dubinc/dub"
+  ],
+  "evidence": [
+    {
+      "source": "github",
+      "title": "novel — Notion-style WYSIWYG editor with AI autocomplete",
+      "url": "https://github.com/steven-tey/novel",
+      "description": "Open-source rich-text editor with AI-powered autocompletion built on Next.js. Polished UI, large community adoption. Shows strong product/frontend engineering with an LLM feature.",
+      "technologies": ["TypeScript", "Next.js", "React", "LLM API", "Tailwind"],
+      "domain_tags": ["frontend", "web", "ai-apps", "developer-tools"],
+      "feature_tags": ["polished-ui", "ai-feature", "open-source"],
+      "evidence_date": "2025-09-14",
+      "confidence": 0.88
+    },
+    {
+      "source": "github",
+      "title": "dub — open-source link attribution platform",
+      "url": "https://github.com/dubinc/dub",
+      "description": "Production-grade open-source SaaS (link management/analytics) with a modern Next.js stack. Demonstrates shipping and maintaining a real product at scale.",
+      "technologies": ["TypeScript", "Next.js", "PlanetScale", "Tailwind"],
+      "domain_tags": ["frontend", "web", "saas"],
+      "feature_tags": ["production-product", "analytics", "open-source"],
+      "evidence_date": "2025-11-08",
+      "confidence": 0.84
+    },
+    {
+      "source": "github",
+      "title": "GitHub profile — prolific full-stack / AI app builder",
+      "url": "https://github.com/steven-tey",
+      "description": "Public profile with many shipped web apps and AI-feature integrations — consistent, self-initiated building over time.",
+      "technologies": ["TypeScript", "Next.js", "React"],
+      "domain_tags": ["frontend", "web", "ai-apps"],
+      "feature_tags": ["voluntary-effort", "domain-consistency"],
+      "evidence_date": "2025-12-02",
+      "confidence": 0.78
+    },
+    {
+      "source": "portfolio",
+      "title": "steven-tey/novel — live demo & docs",
+      "url": "https://github.com/steven-tey/novel#readme",
+      "description": "README with live demo, screenshots, and architecture — shows growing curiosity about embedding LLMs into web products, though not autonomous agents specifically.",
+      "technologies": ["Next.js", "LLM API"],
+      "domain_tags": ["ai-apps", "frontend"],
+      "feature_tags": ["demo", "documentation"],
+      "evidence_date": "2025-10-01",
+      "confidence": 0.6
+    }
+  ],
+  "portfolio_images": [
+    {
+      "file": "images/webapp-screenshot.png",
+      "title": "novel — AI editor UI screenshot",
+      "source_url": "https://github.com/steven-tey/novel"
+    }
+  ]
+}

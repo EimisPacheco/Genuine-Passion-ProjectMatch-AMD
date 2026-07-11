@@ -1,0 +1,23 @@
+{
+  "id": "company_autonomous_recruiter",
+  "title": "Build an Autonomous AI Recruiting Investigator",
+  "description": "An autonomous multi-agent system that investigates candidates by discovering and analyzing their public technical work (GitHub, hackathons, Kaggle, portfolios), extracts genuine-passion signals, compares each candidate's projects to a target company project using embeddings and vector search, ranks candidates, and produces an evidence-backed executive summary. The system must reason like an investigator: collect evidence, cite sources, and never fabricate findings.",
+  "business_problem": "Hiring teams cannot reliably tell who is genuinely passionate about a problem versus who merely tailored a resume. Resume screeners miss builders who have been quietly working on the exact problem for years.",
+  "target_users": "Technical recruiters, hiring managers, and founders at AI-first companies hiring agent/ML engineers.",
+  "domain_tags": ["ai-agents", "multi-agent", "autonomous-agents", "research-automation", "developer-tools", "recruiting"],
+  "expected_features": [
+    "Autonomous evidence discovery across multiple public sources",
+    "Multi-agent orchestration (LangGraph-style)",
+    "Embedding-based project-to-project similarity with vector search",
+    "Passion / genuine-interest scoring from public artifacts",
+    "Candidate ranking with transparent, evidence-cited explanations",
+    "Executive summary report or video generation",
+    "LLM observability and tracing"
+  ],
+  "expected_technologies": [
+    "Python", "LangGraph", "Multi-agent systems", "LLMs", "Anthropic Claude",
+    "Vector databases", "Embeddings", "Web scraping", "FastAPI", "Observability"
+  ],
+  "success_criteria": "Recommends candidates whose prior public projects clearly match the target problem, with every recommendation backed by verifiable source URLs and zero fabricated evidence.",
+  "desired_candidates": 3
+}

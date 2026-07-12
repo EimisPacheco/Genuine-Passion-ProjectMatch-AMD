@@ -59,11 +59,19 @@ def caption_video(video_path: str, narration: str, style: str) -> dict[str, Any]
         f"Narration script (for context):\n{(narration or '')[:1200]}\n\n"
         'Return JSON with a single key "caption".'
     )
-    res = engine.complete_json(
-        prompt, system=SYSTEM, images=frames,
-        provider=provider, model=model, name="video_caption", max_tokens=400,
-    )
-    caption = str(res.get("caption", "")).strip()[:600]
-    if not caption:
-        raise RuntimeError("the vision model returned an empty caption")
-    return {"style": key, "caption": caption, "provider": provider, "model": model}
+    # Retry once: the technical caption is long, and a truncated reply comes back as
+    # invalid JSON ("Unterminated string") rather than as an empty result.
+    last: Exception | None = None
+    for _ in (1, 2):
+        try:
+            res = engine.complete_json(
+                prompt, system=SYSTEM, images=frames,
+                provider=provider, model=model, name="video_caption", max_tokens=1200,
+            )
+            caption = str(res.get("caption", "")).strip()[:600]
+            if not caption:
+                raise RuntimeError("the vision model returned an empty caption")
+            return {"style": key, "caption": caption, "provider": provider, "model": model}
+        except Exception as exc:
+            last = exc
+    raise RuntimeError(f"caption generation failed: {str(last)[:140]}")

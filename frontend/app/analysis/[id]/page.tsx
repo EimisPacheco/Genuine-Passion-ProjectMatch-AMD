@@ -130,15 +130,8 @@ function Rankings({ candidates, topN, onPick }: { candidates: Candidate[]; topN:
   if (!candidates.length) return <Empty msg="Rankings appear when the analysis finishes." />;
   const shown = visibleCandidates(candidates, topN);
   const hidden = candidates.length - shown.length;
-  const missingLinkedin = shown.filter((c) => !c.contactable).length;
   return (
     <div className="space-y-3">
-      {missingLinkedin > 0 && (
-        <p className="rounded-lg border border-amber-500/30 bg-amber-500/5 px-3 py-2 text-xs text-amber-200/90">
-          {missingLinkedin} top-ranked candidate{missingLinkedin > 1 ? "s are" : " is"} not marked selected —
-          no LinkedIn on file, so they can’t be contacted.
-        </p>
-      )}
       {shown.map((c) => (
         // OpenUI-generated component
         <CandidateCard key={c.candidate_id} c={c} onPick={onPick} />
@@ -326,17 +319,17 @@ function CandidateDetail({ id, candidates, topN, cid, setCid, onEvidence }: any)
           <button className="btn-ghost mt-4 text-sm" onClick={onEvidence}>View all evidence →</button>
         </div>
         <div className="card space-y-3">
-          <ScoreBar label="Overall" value={c.overall_score} />
-          <ScoreBar label="Code" value={c.code_score} />
-          <ScoreBar label="Design" value={c.design_score} />
-          <ScoreBar label="Project similarity" value={c.project_similarity} />
-          <ScoreBar label="Genuine passion" value={c.genuine_passion} />
-          <ScoreBar label="Domain similarity" value={c.domain_similarity} />
-          <ScoreBar label="Technology" value={c.technology_similarity} />
-          <ScoreBar label="Builder consistency" value={c.builder_consistency} />
-          <ScoreBar label="Voluntary effort" value={c.voluntary_effort} />
-          <ScoreBar label="Innovation" value={c.innovation} />
-          <ScoreBar label="Confidence" value={c.confidence} />
+          <ScoreBar label="Overall" value={c.overall_score} reason={c.reasons?.overall_score} />
+          <ScoreBar label="Code" value={c.code_score} reason={c.reasons?.code_score} />
+          <ScoreBar label="Design" value={c.design_score} reason={c.reasons?.design_score} />
+          <ScoreBar label="Project similarity" value={c.project_similarity} reason={c.reasons?.project_similarity} />
+          <ScoreBar label="Genuine passion" value={c.genuine_passion} reason={c.reasons?.genuine_passion} />
+          <ScoreBar label="Domain similarity" value={c.domain_similarity} reason={c.reasons?.domain_similarity} />
+          <ScoreBar label="Technology" value={c.technology_similarity} reason={c.reasons?.technology_similarity} />
+          <ScoreBar label="Builder consistency" value={c.builder_consistency} reason={c.reasons?.builder_consistency} />
+          <ScoreBar label="Voluntary effort" value={c.voluntary_effort} reason={c.reasons?.voluntary_effort} />
+          <ScoreBar label="Innovation" value={c.innovation} reason={c.reasons?.innovation} />
+          <ScoreBar label="Confidence" value={c.confidence} reason={c.reasons?.confidence} />
         </div>
       </div>
     </div>

@@ -38,12 +38,12 @@ export function CandidateCard({ c, onPick }: { c: Candidate; onPick: (cid: strin
         </div>
       </div>
       <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-3">
-        <ScoreBar label="Project similarity" value={c.project_similarity} />
-        <ScoreBar label="Genuine passion" value={c.genuine_passion} />
-        <ScoreBar label="Domain" value={c.domain_similarity} />
-        <ScoreBar label="Code" value={c.code_score} />
-        <ScoreBar label="Design" value={c.design_score} />
-        <ScoreBar label="Evidence quality" value={c.evidence_quality} />
+        <ScoreBar label="Project similarity" value={c.project_similarity} reason={c.reasons?.project_similarity} />
+        <ScoreBar label="Genuine passion" value={c.genuine_passion} reason={c.reasons?.genuine_passion} />
+        <ScoreBar label="Domain" value={c.domain_similarity} reason={c.reasons?.domain_similarity} />
+        <ScoreBar label="Code" value={c.code_score} reason={c.reasons?.code_score} />
+        <ScoreBar label="Design" value={c.design_score} reason={c.reasons?.design_score} />
+        <ScoreBar label="Evidence quality" value={c.evidence_quality} reason={c.reasons?.evidence_quality} />
       </div>
       <div className="mt-3 flex items-center justify-between">
         <span className="text-sm text-slate-400">{c.recommendation}</span>

@@ -12,6 +12,8 @@ export type Candidate = {
   email?: string;
   linkedin_url?: string;
   contactable?: boolean;
+  /** Why each score is what it is — keyed by score field. */
+  reasons?: Record<string, string>;
   rank: number;
   selected: boolean;
   overall_score: number;

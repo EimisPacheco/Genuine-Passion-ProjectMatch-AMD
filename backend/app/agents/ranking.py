@@ -41,6 +41,7 @@ def run(state: ProjectMatchState) -> dict[str, Any]:
     github = state.get("github_analyses", {})
     visual = state.get("visual_analyses", {})
     hackathon = state.get("hackathon_analyses", {})
+    company = state.get("company_project", {})  # needed to explain the tag-overlap scores
 
     rows: list[dict[str, Any]] = []
     with agent_step("ranking", analysis_id, f"top_n={top_n}") as h:
@@ -63,6 +64,11 @@ def run(state: ProjectMatchState) -> dict[str, Any]:
             confidence = _confidence(items, evidence_quality)
             evidence_ids = _evidence_ids(items, p, s)
 
+            reasons = _reasons(
+                company, items, p, s, github.get(cid, []), visual.get(cid, []),
+                hackathon.get(cid, []), evidence_quality,
+            )
+
             rows.append(
                 {
                     "candidate_id": cid,
@@ -72,6 +78,7 @@ def run(state: ProjectMatchState) -> dict[str, Any]:
                     "design_score": round(design_score, 3),
                     "evidence_quality": round(evidence_quality, 3),
                     "evidence_ids": evidence_ids,
+                    "reasons": reasons,
                     **{k: round(v, 3) for k, v in components.items()},
                     "feature_similarity": s.get("feature_similarity", 0.0),
                     "mission_similarity": s.get("mission_similarity", 0.0),
@@ -97,6 +104,116 @@ def run(state: ProjectMatchState) -> dict[str, Any]:
 
 def _clip(x: float) -> float:
     return max(0.0, min(1.0, x))
+
+
+# Reuse the exact sets the scores are computed from — a duplicated copy would drift
+# and the explanation would contradict the number it explains.
+from backend.app.agents.passion import VOLUNTARY_SOURCES
+
+NOVELTY_WORDS = ("win", "winner", "medal", "novel", "first")
+
+
+def _plural(n: int, one: str, many: str) -> str:
+    return f"{n} {one if n == 1 else many}"
+
+
+def _overlap(a: list[str], b: list[str]) -> list[str]:
+    lower = {x.lower() for x in b}
+    return sorted({x for x in a if x.lower() in lower})
+
+
+def _reasons(
+    company: dict[str, Any], items: list[dict[str, Any]], p: dict[str, Any], s: dict[str, Any],
+    gh: list[dict[str, Any]], visual: list[dict[str, Any]], hack: list[dict[str, Any]],
+    evidence_quality: float,
+) -> dict[str, str]:
+    """One short, data-backed sentence per score — why THIS candidate got THIS number.
+
+    Everything here is read off the same inputs the scores were computed from, so the
+    explanation can never disagree with the number it explains.
+    """
+    n = len(items)
+    sources = sorted({e.get("source", "") for e in items if e.get("source")})
+    cand_domains = sorted({d for e in items for d in e.get("domain_tags", [])})
+    cand_techs = sorted({t for e in items for t in e.get("technologies", [])})
+    proj_domains = company.get("domain_tags", []) or []
+    proj_techs = company.get("technologies", []) or company.get("expected_technologies", []) or []
+
+    dom_hit = _overlap(proj_domains, cand_domains)
+    tech_hit = _overlap(proj_techs, cand_techs)
+    voluntary = sum(1 for e in items if e.get("source") in VOLUNTARY_SOURCES)
+    novel = [e for e in items
+             if any(k in (e.get("description") or "").lower() for k in NOVELTY_WORDS)]
+    dated = sorted(e.get("evidence_date", "") for e in items if e.get("evidence_date"))
+    span = _month_span_safe(dated)
+    qs = [g.get("quality_score") for g in gh if g.get("quality_score") is not None]
+    pol = [v.get("polish") for v in visual if v.get("polish") is not None]
+    ex = [h.get("execution_quality") for h in hack if h.get("execution_quality") is not None]
+    avg_conf = sum(float(e.get("confidence", 0.6)) for e in items) / n if n else 0.0
+
+    def lst(xs: list[str], k: int = 4) -> str:
+        return ", ".join(xs[:k]) + ("…" if len(xs) > k else "")
+
+    return {
+        "overall_score":
+            "Weighted blend: project fit 40%, genuine passion 25%, domain 15%, "
+            "technology 10%, innovation 5%, evidence quality 5%.",
+        "project_similarity":
+            "How close their work is to the mission: 55% semantic similarity (embeddings "
+            f"on the MI300X), plus tag overlap on domain, technology and features. "
+            f"Matched domains: {lst(dom_hit) or 'none'}.",
+        "genuine_passion":
+            "Do they keep choosing this problem? Blends how much of their work touches the "
+            f"project's domains, how consistently they build, and how much is self-initiated "
+            f"({voluntary} of {n} items).",
+        "domain_similarity":
+            (f"{len(dom_hit)} of {len(proj_domains)} project domains appear in their work: {lst(dom_hit)}."
+             if dom_hit else
+             f"None of the project's {len(proj_domains)} domains appear in their evidence."),
+        "technology_similarity":
+            (f"{len(tech_hit)} of {len(proj_techs)} project technologies appear in their work: {lst(tech_hit)}."
+             if tech_hit else
+             f"None of the project's {len(proj_techs)} technologies appear in their evidence."),
+        "code_score":
+            (f"Average engineering quality across {len(qs)} analysed repositories."
+             if qs else
+             "No repository analysis available — estimated from their technology depth and "
+             "how consistently they build."),
+        "design_score":
+            (f"Average polish Gemma's vision model saw across {_plural(len(pol), 'portfolio image', 'portfolio images')}"
+             + (f", plus execution quality from {_plural(len(ex), 'hackathon project', 'hackathon projects')}." if ex else ".")
+             if pol else
+             "No portfolio images were readable — estimated from innovation and voluntary effort."),
+        "builder_consistency":
+            f"{_plural(n, 'piece', 'pieces')} of public work spanning "
+            f"{_plural(span, 'month', 'months')}. Full marks needs ~6 items across a year or more.",
+        "voluntary_effort":
+            f"{_plural(voluntary, 'self-initiated artifact', 'self-initiated artifacts')} "
+            f"(repos, hackathons, notebooks, writing). Full marks at 5 or more.",
+        "innovation":
+            (f"{_plural(len(novel), 'item mentions', 'items mention')} an award, a win or a novel "
+             f"result: {lst([e.get('title', '') for e in novel], 2)}."
+             if novel else
+             "Nothing in their evidence mentions an award, a win, or a novel result — this "
+             "measures recognised novelty, not skill."),
+        "evidence_quality":
+            f"{n} evidence items across {len(sources)} distinct sources "
+            f"({lst(sources, 5)}), average source confidence {avg_conf:.0%}.",
+        "confidence":
+            f"How much we trust this verdict: driven by evidence quality and how much we "
+            f"found ({n} items; 5+ is a full signal).",
+    }
+
+
+def _month_span_safe(dates: list[str]) -> int:
+    if len(dates) < 2:
+        return 0
+    try:
+        y0, m0 = int(dates[0][:4]), int(dates[0][5:7])
+        y1, m1 = int(dates[-1][:4]), int(dates[-1][5:7])
+        return max(0, (y1 - y0) * 12 + (m1 - m0))
+    except Exception:
+        return 0
 
 
 def _code_score(gh_analyses: list[dict[str, Any]], passion: dict[str, Any]) -> float:

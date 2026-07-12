@@ -26,6 +26,11 @@ class CandidateSourceIn(BaseModel):
     sources: list[str] = Field(default_factory=list)
 
 
+class VideoCaptionIn(BaseModel):
+    """Style for the on-demand Gemma caption of the recommendation video."""
+    style: str = "formal"  # formal | sarcastic | humorous_tech | humorous_non_tech
+
+
 class AnalysisIn(BaseModel):
     project_id: str | None = None
     company_project: ProjectIn | None = None

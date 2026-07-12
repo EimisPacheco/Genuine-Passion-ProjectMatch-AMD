@@ -84,9 +84,14 @@ class Settings(BaseSettings):
     # Video
     video_output_dir: str = "video/out"
     tts_enabled: bool = True
-    # macOS `say` narration voice + rate. Samantha is a clear, professional voice
-    # (far better than the robotic default). Install "Enhanced"/Siri voices in
-    # System Settings → Accessibility → Spoken Content for near-human quality.
+    # Narration voice. `gcloud` = Google Cloud Text-to-Speech (Studio/Neural2 —
+    # near-human); falls back to the macOS `say` voice below if unavailable.
+    tts_provider: str = "gcloud"  # gcloud | say
+    gcloud_tts_voice: str = "en-US-Studio-O"  # narration-optimised Studio voice
+    gcloud_tts_language: str = "en-US"
+    gcloud_tts_rate: float = 1.0
+    google_credentials_file: str = "gcp-sa-key.json"
+    # macOS `say` fallback voice + rate.
     tts_voice: str = "Samantha"
     tts_rate: int = 178  # words per minute
     # Pre-generated "featured" video reused everywhere so we never pay to render
@@ -97,6 +102,9 @@ class Settings(BaseSettings):
     # the slowest agent. Lower the cap (or raise concurrency) to speed a run up.
     visual_max_images: int = 4
     visual_concurrency: int = 4
+    # Generic GitHub social-preview cards all render the same layout + avatar, so
+    # a wall of them looks duplicated. Prefer real README visuals; allow few cards.
+    visual_max_repo_cards: int = 1
 
     # OpenUI (frontend generation — used at build time, flag for reporting)
     openui_enabled: bool = True

@@ -1,6 +1,0 @@
-[
-  { "file": "agents-architecture.mp4", "title": "BabyAGI — autonomous agent architecture", "source_url": "https://github.com/yoheinakajima/babyagi" },
-  { "file": "agents-demo.mp4", "title": "Ditto — self-building agent demo", "source_url": "https://github.com/yoheinakajima" },
-  { "file": "ml-pipeline.mp4", "title": "ML pipeline architecture", "source_url": "https://www.kaggle.com/abhishek" },
-  { "file": "webapp-demo.mp4", "title": "Web app product screenshot", "source_url": "https://github.com/steven-tey" }
-]

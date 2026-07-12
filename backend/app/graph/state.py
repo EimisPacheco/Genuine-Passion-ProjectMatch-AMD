@@ -42,8 +42,5 @@ class ProjectMatchState(TypedDict, total=False):
     # Agent 9
     video_report: dict[str, Any]
 
-    # Agent 11 — fixed clip set → 4-style Gemma captions
-    clip_captions: list[dict[str, Any]]
-
     # Cross-cutting
     trace_ids: dict[str, str]

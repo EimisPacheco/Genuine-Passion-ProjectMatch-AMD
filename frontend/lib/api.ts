@@ -61,19 +61,13 @@ export type VisualAnalysis = {
   model: string;
 };
 
-export type ClipCaption = {
-  id: string;
-  title: string;
-  source_url: string;
-  thumb: string; // data URI of a sampled frame
+export type CaptionStyle = "formal" | "sarcastic" | "humorous_tech" | "humorous_non_tech";
+
+export type VideoCaption = {
+  style: CaptionStyle;
+  caption: string;
   provider: string;
   model: string;
-  captions: {
-    formal?: string;
-    sarcastic?: string;
-    humorous_tech?: string;
-    humorous_non_tech?: string;
-  };
 };
 
 // For SSE we connect EventSource straight to the backend: the Next.js dev proxy
@@ -104,8 +98,13 @@ export const api = {
     fetch(`/api/analyses/${id}/candidates/${cid}/evidence`).then(j<{ evidence: Evidence[] }>),
   visual: (id: string, cid: string) =>
     fetch(`/api/analyses/${id}/candidates/${cid}/visual`).then(j<{ visual: VisualAnalysis[] }>),
-  captions: (id: string) =>
-    fetch(`/api/analyses/${id}/captions`).then(j<{ clips: ClipCaption[] }>),
+  // On-demand Gemma caption of the recommendation video, in one chosen style.
+  videoCaption: (id: string, style: CaptionStyle) =>
+    fetch(`/api/analyses/${id}/video/caption`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ style }),
+    }).then(j<VideoCaption>),
   traces: (id: string) => fetch(`/api/analyses/${id}/traces`).then(j<any>),
   video: (id: string) => fetch(`/api/analyses/${id}/video`).then(j<any>),
 };

@@ -2,14 +2,14 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { api, API_BASE, Candidate, ClipCaption, Evidence, VisualAnalysis, pct } from "@/lib/api";
+import { api, API_BASE, Candidate, CaptionStyle, Evidence, VideoCaption, VisualAnalysis, pct } from "@/lib/api";
 import { ScoreBar } from "@/components/openui/ScoreBar";
 import { CandidateCard } from "@/components/openui/CandidateCard";
 import { EvidenceCard } from "@/components/openui/EvidenceCard";
 import { AgentProgressList } from "@/components/openui/AgentProgressList";
-import { RacePanel } from "@/components/RacePanel";
 
-const TABS = ["Progress", "⚡ Speed", "Rankings", "Candidate", "📍 Map", "Evidence", "Video", "🎬 Captions", "Traces"] as const;
+// Map lives inside Rankings; captions live under the Video. Speed race is hidden.
+const TABS = ["Progress", "Rankings", "Candidate", "Evidence", "Video", "Traces"] as const;
 type Tab = (typeof TABS)[number];
 
 export default function AnalysisPage({ params }: { params: { id: string } }) {
@@ -101,15 +101,10 @@ export default function AnalysisPage({ params }: { params: { id: string } }) {
       </div>
 
       {tab === "Progress" && <Progress events={events} pctDone={pctDone} elapsedMs={elapsedMs} status={status} />}
-      {tab === "⚡ Speed" && (
-        <RacePanel infoPath={`/api/analyses/${id}/race/info`} streamPath={`/api/analyses/${id}/race/stream`} />
-      )}
       {tab === "Rankings" && <Rankings candidates={candidates} topN={topN} onPick={(c) => { setSelectedCid(c); setTab("Candidate"); }} />}
-      {tab === "Candidate" && <CandidateDetail id={id} candidates={candidates} cid={selectedCid} setCid={setSelectedCid} onEvidence={() => setTab("Evidence")} />}
-      {tab === "📍 Map" && <CandidateMap candidates={candidates} onPick={(c) => { setSelectedCid(c); setTab("Candidate"); }} />}
-      {tab === "Evidence" && <EvidenceExplorer id={id} candidates={candidates} cid={selectedCid} setCid={setSelectedCid} />}
+      {tab === "Candidate" && <CandidateDetail id={id} candidates={candidates} topN={topN} cid={selectedCid} setCid={setSelectedCid} onEvidence={() => setTab("Evidence")} />}
+      {tab === "Evidence" && <EvidenceExplorer id={id} candidates={candidates} topN={topN} cid={selectedCid} setCid={setSelectedCid} />}
       {tab === "Video" && <VideoViewer id={id} status={status} />}
-      {tab === "🎬 Captions" && <ClipCaptions id={id} status={status} />}
       {tab === "Traces" && <Traces id={id} events={events} />}
     </div>
   );
@@ -120,13 +115,20 @@ function Progress({ events, pctDone, elapsedMs, status }: { events: any[]; pctDo
   return <AgentProgressList events={events} pctDone={pctDone} elapsedMs={elapsedMs} running={status === "running"} />;
 }
 
+/**
+ * The ONLY candidates the app ever shows: the Top-N the user asked for.
+ * Prefer the selected (contactable) set; otherwise the Top-N by rank. Never the
+ * whole discovered pool — a run that finds 60 people still shows only Top-N.
+ */
+function visibleCandidates(candidates: Candidate[], topN: number): Candidate[] {
+  const inTopN = candidates.filter((c) => c.selected || c.rank <= topN);
+  const shown = inTopN.length ? inTopN : candidates.slice().sort((a, b) => a.rank - b.rank).slice(0, topN);
+  return shown.slice().sort((a, b) => a.rank - b.rank);
+}
+
 function Rankings({ candidates, topN, onPick }: { candidates: Candidate[]; topN: number; onPick: (cid: string) => void }) {
   if (!candidates.length) return <Empty msg="Rankings appear when the analysis finishes." />;
-  // Show the Top-N slots: the selected (contactable) candidates, PLUS anyone who
-  // ranked in the Top-N but was held back for lacking a LinkedIn — kept visible
-  // and flagged. Lower-ranked candidates stay hidden.
-  const visible = candidates.filter((c) => c.selected || c.rank <= topN);
-  const shown = (visible.length ? visible : candidates).slice().sort((a, b) => a.rank - b.rank);
+  const shown = visibleCandidates(candidates, topN);
   const hidden = candidates.length - shown.length;
   const missingLinkedin = shown.filter((c) => !c.contactable).length;
   return (
@@ -146,70 +148,12 @@ function Rankings({ candidates, topN, onPick }: { candidates: Candidate[]; topN:
           Showing the top {shown.length} of {candidates.length} candidates investigated.
         </p>
       )}
+      {/* Map lives here now, under the rankings — same Top-N. */}
+      <CandidateMap candidates={shown} onPick={onPick} />
     </div>
   );
 }
 
-const CAPTION_STYLES: { key: keyof ClipCaption["captions"]; label: string; tone: string }[] = [
-  { key: "formal", label: "Formal", tone: "border-sky-500/40 text-sky-200" },
-  { key: "sarcastic", label: "Sarcastic", tone: "border-amber-500/40 text-amber-200" },
-  { key: "humorous_tech", label: "Humorous · tech", tone: "border-emerald-500/40 text-emerald-200" },
-  { key: "humorous_non_tech", label: "Humorous · non-tech", tone: "border-fuchsia-500/40 text-fuchsia-200" },
-];
-
-function ClipCaptions({ id, status }: { id: string; status: string }) {
-  const [clips, setClips] = useState<ClipCaption[] | null>(null);
-  useEffect(() => {
-    if (status !== "done") return;
-    api.captions(id).then((r) => setClips(r.clips)).catch(() => setClips([]));
-  }, [id, status]);
-
-  if (status !== "done") return <Empty msg="Captions appear when the analysis finishes." />;
-  if (clips === null) return <Empty msg="Loading captions…" />;
-  if (!clips.length)
-    return <Empty msg="No clips found. Add short .mp4 clips to demo_data/clips/ to caption them." />;
-
-  return (
-    <div className="space-y-4">
-      <div className="card">
-        <h3 className="font-semibold text-slate-100">Clip captions — four styles (Gemma vision)</h3>
-        <p className="mt-1 text-sm text-slate-400">
-          Frames sampled from each short clip and captioned by <b>Gemma on the AMD MI300X</b> in four
-          styles: formal, sarcastic, humorous-tech, and humorous-non-tech.
-        </p>
-      </div>
-      {clips.map((c) => (
-        <div key={c.id} className="card">
-          <div className="flex flex-col gap-4 md:flex-row">
-            {c.thumb ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={c.thumb} alt={c.title} className="h-40 w-full shrink-0 rounded-lg object-cover md:w-64" />
-            ) : (
-              <div className="flex h-40 w-full shrink-0 items-center justify-center rounded-lg bg-slate-900/60 text-3xl md:w-64">🎬</div>
-            )}
-            <div className="min-w-0 flex-1">
-              <div className="mb-2 flex items-center justify-between gap-2">
-                <h4 className="truncate font-semibold text-slate-100">{c.title}</h4>
-                <span className="chip shrink-0 text-[10px]">{c.provider === "heuristic" ? "fallback" : `${c.provider} · ${c.model}`}</span>
-              </div>
-              {c.source_url && (
-                <a href={c.source_url} target="_blank" className="mb-2 block truncate text-xs text-brand/70 hover:text-brand">{c.source_url}</a>
-              )}
-              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                {CAPTION_STYLES.map((s) => (
-                  <div key={s.key} className={`rounded-lg border bg-slate-900/40 p-3 ${s.tone}`}>
-                    <div className="mb-1 text-[10px] font-semibold uppercase tracking-wide opacity-80">{s.label}</div>
-                    <p className="text-sm text-slate-200">{c.captions?.[s.key] || "—"}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
 
 // Load the Google Maps JS API once (shared across mounts).
 let mapsPromise: Promise<any> | null = null;
@@ -336,15 +280,9 @@ function GoogleCombinedMap(
   return <div ref={ref} className="h-[28rem] w-full" />;
 }
 
-function CandidatePicker({ candidates, cid, setCid }: { candidates: Candidate[]; cid: string; setCid: (c: string) => void }) {
-  // Only the selected Top-N — not every candidate investigated.
-  const selected = candidates.filter((c) => c.selected);
-  const shown = selected.length ? selected : candidates;
-  // Keep the currently-open candidate visible even if it's outside the Top-N.
-  if (cid && !shown.some((c) => c.candidate_id === cid)) {
-    const cur = candidates.find((c) => c.candidate_id === cid);
-    if (cur) shown.push(cur);
-  }
+function CandidatePicker({ candidates, cid, setCid, topN }: { candidates: Candidate[]; cid: string; setCid: (c: string) => void; topN: number }) {
+  // Only the Top-N — never every candidate investigated.
+  const shown = visibleCandidates(candidates, topN);
   return (
     <div className="mb-4 flex flex-wrap gap-2">
       {shown.map((c) => (
@@ -357,12 +295,12 @@ function CandidatePicker({ candidates, cid, setCid }: { candidates: Candidate[];
   );
 }
 
-function CandidateDetail({ id, candidates, cid, setCid, onEvidence }: any) {
+function CandidateDetail({ id, candidates, topN, cid, setCid, onEvidence }: any) {
   if (!candidates.length) return <Empty msg="Candidate details appear when the analysis finishes." />;
   const c: Candidate = candidates.find((x: Candidate) => x.candidate_id === cid) || candidates[0];
   return (
     <div>
-      <CandidatePicker candidates={candidates} cid={c.candidate_id} setCid={setCid} />
+      <CandidatePicker candidates={candidates} topN={topN} cid={c.candidate_id} setCid={setCid} />
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <div className="card lg:col-span-2">
           <h3 className="text-lg font-semibold text-slate-100">#{c.rank} {c.name}</h3>
@@ -450,7 +388,7 @@ function VisualStrip({ id, cid }: { id: string; cid: string }) {
   );
 }
 
-function EvidenceExplorer({ id, candidates, cid, setCid }: any) {
+function EvidenceExplorer({ id, candidates, topN, cid, setCid }: any) {
   const [evidence, setEvidence] = useState<Evidence[]>([]);
   useEffect(() => {
     if (cid) api.evidence(id, cid).then((r) => setEvidence(r.evidence));
@@ -458,7 +396,7 @@ function EvidenceExplorer({ id, candidates, cid, setCid }: any) {
   if (!candidates.length) return <Empty msg="Evidence appears when the analysis finishes." />;
   return (
     <div>
-      <CandidatePicker candidates={candidates} cid={cid} setCid={setCid} />
+      <CandidatePicker candidates={candidates} topN={topN} cid={cid} setCid={setCid} />
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
         {/* OpenUI-generated component */}
         {evidence.map((e) => (
@@ -491,11 +429,74 @@ function VideoViewer({ id, status }: { id: string; status: string }) {
         <div className="mt-3 flex gap-2">
           <a className="btn-ghost text-sm" href={meta.srt_url} target="_blank">Download .srt</a>
         </div>
+        {/* Caption this video with Gemma, in a style you choose — on demand. */}
+        <VideoCaptioner id={id} />
       </div>
       <div className="card">
         <div className="mb-2 text-xs font-semibold uppercase text-brand">Narration script</div>
         <pre className="max-h-[420px] overflow-auto whitespace-pre-wrap text-sm text-slate-300">{meta.narration_script}</pre>
       </div>
+    </div>
+  );
+}
+
+const STYLE_OPTIONS: { key: CaptionStyle; label: string }[] = [
+  { key: "formal", label: "Formal" },
+  { key: "sarcastic", label: "Sarcastic" },
+  { key: "humorous_tech", label: "Humorous · tech" },
+  { key: "humorous_non_tech", label: "Humorous · non-tech" },
+];
+
+function VideoCaptioner({ id }: { id: string }) {
+  const [style, setStyle] = useState<CaptionStyle>("formal");
+  const [result, setResult] = useState<VideoCaption | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  async function generate() {
+    setLoading(true);
+    setError("");
+    setResult(null);
+    try {
+      setResult(await api.videoCaption(id, style));
+    } catch (e: any) {
+      setError(String(e?.message || e).slice(0, 160));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="mt-5 border-t border-slate-800 pt-4">
+      <div className="mb-2 text-xs font-semibold uppercase text-brand">Caption this video</div>
+      <div className="mb-3 flex flex-wrap gap-2">
+        {STYLE_OPTIONS.map((s) => (
+          <button key={s.key} onClick={() => setStyle(s.key)}
+            className={s.key === style ? "btn text-sm" : "btn-ghost text-sm"}>
+            {s.label}
+          </button>
+        ))}
+        <button className="btn text-sm" onClick={generate} disabled={loading}>
+          {loading ? "Generating…" : "Generate caption →"}
+        </button>
+      </div>
+      {loading && (
+        <p className="text-sm text-slate-500">Gemma is watching the video…</p>
+      )}
+      {error && (
+        <p className="rounded-lg border border-red-500/30 bg-red-500/5 p-3 text-sm text-red-200">{error}</p>
+      )}
+      {result && (
+        <div className="rounded-lg border border-slate-800 bg-slate-900/40 p-3">
+          <div className="mb-1 flex items-center justify-between gap-2">
+            <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+              {STYLE_OPTIONS.find((s) => s.key === result.style)?.label}
+            </span>
+            <span className="chip text-[10px]">{result.provider} · {result.model}</span>
+          </div>
+          <p className="text-slate-200">{result.caption}</p>
+        </div>
+      )}
     </div>
   );
 }

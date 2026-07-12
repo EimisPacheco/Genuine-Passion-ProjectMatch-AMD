@@ -11,7 +11,7 @@ import time
 from collections import defaultdict
 from typing import Any
 
-TOTAL_STEPS = 11  # agents 1..11 drive the progress bar
+TOTAL_STEPS = 10  # agents 1..10 drive the progress bar
 
 _history: dict[str, list[dict[str, Any]]] = defaultdict(list)
 _subscribers: dict[str, list[asyncio.Queue]] = defaultdict(list)

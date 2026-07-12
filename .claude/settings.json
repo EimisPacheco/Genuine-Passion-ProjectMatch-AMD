@@ -1,7 +1,9 @@
 {
   "permissions": {
     "allow": [
-      "Bash(nc -z -G 5 129.212.179.131 22)"
+      "Bash(nc -z -G 5 129.212.179.131 22)",
+      "Bash(rm -rf demo_data/clips)",
+      "Bash(rm -f backend/app/agents/clip_captioning.py)"
     ]
   }
 }

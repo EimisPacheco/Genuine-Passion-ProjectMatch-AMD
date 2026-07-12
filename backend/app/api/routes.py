@@ -17,7 +17,7 @@ from fastapi import APIRouter, HTTPException
 from fastapi.responses import FileResponse, Response, StreamingResponse
 
 from backend.app import analyses, progress, race, store
-from backend.app.api.schemas import AnalysisIn, ProjectIn
+from backend.app.api.schemas import AnalysisIn, ProjectIn, VideoCaptionIn
 from backend.app.config import settings
 from integrations.scrapers import demo_loader
 
@@ -227,11 +227,21 @@ def candidate_evidence(analysis_id: str, candidate_id: str) -> dict[str, Any]:
     return {"candidate_id": candidate_id, "evidence": evidence}
 
 
-@router.get("/analyses/{analysis_id}/captions")
-def clip_captions(analysis_id: str) -> dict[str, Any]:
-    """Gemma 4-style captions for the fixed clip set (agent 11)."""
-    result = _result(analysis_id)
-    return {"clips": result.get("clip_captions", [])}
+@router.post("/analyses/{analysis_id}/video/caption")
+def generate_video_caption(analysis_id: str, payload: VideoCaptionIn) -> dict[str, Any]:
+    """Caption THIS analysis's recommendation video with Gemma, in one chosen style.
+    On demand only — nothing is generated during the pipeline."""
+    from backend.app import video_caption
+
+    vid = _result(analysis_id).get("video_report", {})
+    try:
+        return video_caption.caption_video(
+            vid.get("mp4_path", ""), vid.get("narration_script", ""), payload.style,
+        )
+    except (FileNotFoundError, ValueError) as exc:
+        raise HTTPException(400, str(exc))
+    except Exception as exc:
+        raise HTTPException(502, f"caption failed: {str(exc)[:160]}")
 
 
 @router.get("/analyses/{analysis_id}/candidates/{candidate_id}/visual")

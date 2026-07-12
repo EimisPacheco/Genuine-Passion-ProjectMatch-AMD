@@ -97,7 +97,11 @@ def _collect_images(cid: str, items: list[dict], live_mode: bool | None) -> list
     preferring a real README image over the generic GitHub social-preview card."""
     imgs = list(demo_loader.portfolio_images_for(cid))
     if live_mode:
-        by_repo: dict[str, list[dict[str, Any]]] = {}
+        # Split real project visuals (README diagrams/screenshots) from the generic
+        # GitHub social-preview cards — those all render the same layout and avatar,
+        # so several of them read as the *same image repeated*. One per repo each.
+        real_by_repo: dict[str, dict[str, Any]] = {}
+        card_by_repo: dict[str, dict[str, Any]] = {}
         for e in items:
             ev_title = e.get("title", "")
             ev_url = e.get("url", "")
@@ -106,18 +110,21 @@ def _collect_images(cid: str, items: list[dict], live_mode: bool | None) -> list
                 u = im.get("url")
                 if not u:
                     continue
-                by_repo.setdefault(ev_url or u, []).append({
+                rec = {
                     "title": (im.get("alt") or ev_title)[:140],
                     "source_url": ev_url or u,
                     "url": u,
                     "file": "",
                     "path": "",
                     "source": src,
-                })
-        for group in by_repo.values():
-            # Sort generic social-preview cards last, keep one real image per repo.
-            group.sort(key=lambda im: "opengraph.githubassets" in (im.get("url") or ""))
-            imgs.append(group[0])
+                }
+                repo = ev_url or u
+                if "opengraph.githubassets" in u:
+                    card_by_repo.setdefault(repo, rec)
+                else:
+                    real_by_repo.setdefault(repo, rec)
+        imgs += list(real_by_repo.values())  # real visuals first
+        imgs += list(card_by_repo.values())[:settings.visual_max_repo_cards]
     seen: set[str] = set()
     uniq: list[dict[str, Any]] = []
     for im in imgs:
@@ -151,29 +158,44 @@ def _analyze_image(cid: str, im: dict[str, Any], trace_handle) -> dict[str, Any]
         return base
 
     provider, model = target
-    try:
-        res = engine.complete_json(
-            PROMPT,
-            system=SYSTEM,
-            images=[img_ref],
-            provider=provider,
-            model=model,
-            trace_handle=trace_handle,
-            name="visual_portfolio",
-            max_tokens=400,
-        )
-        base.update({
-            "caption": str(res.get("caption", ""))[:300],
-            "signals": [str(s)[:40] for s in (res.get("signals") or [])][:6],
-            "polish": _clip(float(res.get("polish", 0.6))),
-            "domain": str(res.get("domain", ""))[:60],
-            "has_people": bool(res.get("has_people", False)),
-            "provider": provider,
-            "model": model,
-        })
-    except Exception:
-        base.update(_heuristic(im))
+    # Retry once: an intermittent vision failure would otherwise emit the fixed
+    # heuristic caption, and several of those read as duplicated portfolio entries.
+    for attempt in (1, 2):
+        try:
+            return _vision_caption(base, img_ref, provider, model, trace_handle)
+        except Exception as exc:
+            if attempt == 2:
+                print(f"[visual_portfolio] vision failed twice for {im.get('url', '')[:60]} ({str(exc)[:80]})")
+    base.update(_heuristic(im))
     return base
+
+
+def _vision_caption(base, img_ref, provider, model, trace_handle) -> dict[str, Any]:
+    """One Gemma vision call. Raises on failure so the caller can retry."""
+    res = engine.complete_json(
+        PROMPT,
+        system=SYSTEM,
+        images=[img_ref],
+        provider=provider,
+        model=model,
+        trace_handle=trace_handle,
+        name="visual_portfolio",
+        max_tokens=400,
+    )
+    caption = str(res.get("caption", "")).strip()[:300]
+    if not caption:
+        raise ValueError("empty caption from vision model")
+    out = dict(base)
+    out.update({
+        "caption": caption,
+        "signals": [str(s)[:40] for s in (res.get("signals") or [])][:6],
+        "polish": _clip(float(res.get("polish", 0.6))),
+        "domain": str(res.get("domain", ""))[:60],
+        "has_people": bool(res.get("has_people", False)),
+        "provider": provider,
+        "model": model,
+    })
+    return out
 
 
 def _thumb_url(cid: str, im: dict[str, Any]) -> str:

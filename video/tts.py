@@ -1,12 +1,14 @@
-"""Offline text-to-speech for video narration.
+"""Text-to-speech for video narration.
 
-Strategy (no paid API): macOS `say` first (reliable on the dev machine), then
-pyttsx3 (cross-platform via espeak), then a silent fallback. Returns a path to a
-WAV file or None when narration is silent. Duration is measured via ffprobe with
-a words-per-second estimate as fallback.
+Strategy: **Google Cloud TTS** first (Studio/Neural2 voices — near-human, needs
+the Text-to-Speech API enabled and a service-account key), then macOS `say`, then
+pyttsx3, then a silent fallback. Returns a path to a WAV file or None when
+narration is silent. Duration is measured via ffprobe with a words-per-second
+estimate as fallback.
 """
 from __future__ import annotations
 
+import os
 import platform
 import shutil
 import subprocess
@@ -29,10 +31,41 @@ def synthesize(text: str, out_path: Path) -> tuple[Path | None, float]:
     if not text or not settings.tts_enabled:
         return None, estimate_duration(text)
 
-    audio = _macos_say(text, out_path) or _pyttsx3(text, out_path)
+    audio = None
+    if (settings.tts_provider or "").lower() == "gcloud":
+        audio = _gcloud_tts(text, out_path)
+    audio = audio or _macos_say(text, out_path) or _pyttsx3(text, out_path)
     if audio is None:
         return None, estimate_duration(text)
     return audio, _probe_duration(audio) or estimate_duration(text)
+
+
+def _gcloud_tts(text: str, out_path: Path) -> Path | None:
+    """Google Cloud Text-to-Speech (Studio / Neural2) — a natural, non-robotic
+    narrator. Returns None on any failure so the caller falls back to `say`."""
+    try:
+        from google.cloud import texttospeech as tts
+
+        cred = settings.google_credentials_file
+        if cred and Path(cred).exists():
+            os.environ.setdefault("GOOGLE_APPLICATION_CREDENTIALS", str(Path(cred).resolve()))
+        client = tts.TextToSpeechClient()
+        resp = client.synthesize_speech(
+            input=tts.SynthesisInput(text=text),
+            voice=tts.VoiceSelectionParams(
+                language_code=settings.gcloud_tts_language,
+                name=settings.gcloud_tts_voice,
+            ),
+            audio_config=tts.AudioConfig(
+                audio_encoding=tts.AudioEncoding.LINEAR16,
+                speaking_rate=settings.gcloud_tts_rate,
+            ),
+        )
+        out_path.write_bytes(resp.audio_content)
+        return out_path if out_path.stat().st_size > 0 else None
+    except Exception as exc:
+        print(f"[tts] Google Cloud TTS unavailable, falling back to `say` ({str(exc)[:120]})")
+        return None
 
 
 def _macos_say(text: str, out_path: Path) -> Path | None:

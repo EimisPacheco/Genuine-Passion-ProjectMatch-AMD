@@ -440,15 +440,13 @@ function VideoViewer({ id, status }: { id: string; status: string }) {
   );
 }
 
-const STYLE_OPTIONS: { key: CaptionStyle; label: string }[] = [
-  { key: "formal", label: "Formal" },
-  { key: "sarcastic", label: "Sarcastic" },
-  { key: "humorous_tech", label: "Humorous · tech" },
-  { key: "humorous_non_tech", label: "Humorous · non-tech" },
+const STYLE_OPTIONS: { key: CaptionStyle; label: string; hint: string }[] = [
+  { key: "tech", label: "Tech hiring manager", hint: "Engineering substance — stack, architecture, what the work proves." },
+  { key: "non_tech", label: "HR / recruiter", hint: "Plain language, no jargon — who they are and why they fit." },
 ];
 
 function VideoCaptioner({ id }: { id: string }) {
-  const [style, setStyle] = useState<CaptionStyle>("formal");
+  const [style, setStyle] = useState<CaptionStyle>("tech");
   const [result, setResult] = useState<VideoCaption | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -468,7 +466,10 @@ function VideoCaptioner({ id }: { id: string }) {
 
   return (
     <div className="mt-5 border-t border-slate-800 pt-4">
-      <div className="mb-2 text-xs font-semibold uppercase text-brand">Caption this video</div>
+      <div className="mb-1 text-xs font-semibold uppercase text-brand">Caption this video for…</div>
+      <p className="mb-3 text-xs text-slate-500">
+        {STYLE_OPTIONS.find((s) => s.key === style)?.hint}
+      </p>
       <div className="mb-3 flex flex-wrap gap-2">
         {STYLE_OPTIONS.map((s) => (
           <button key={s.key} onClick={() => setStyle(s.key)}

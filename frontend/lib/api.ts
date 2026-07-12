@@ -61,7 +61,8 @@ export type VisualAnalysis = {
   model: string;
 };
 
-export type CaptionStyle = "formal" | "sarcastic" | "humorous_tech" | "humorous_non_tech";
+// Two audiences read the same recommendation video: technical hiring managers, and HR.
+export type CaptionStyle = "tech" | "non_tech";
 
 export type VideoCaption = {
   style: CaptionStyle;

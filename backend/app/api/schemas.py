@@ -27,8 +27,8 @@ class CandidateSourceIn(BaseModel):
 
 
 class VideoCaptionIn(BaseModel):
-    """Style for the on-demand Gemma caption of the recommendation video."""
-    style: str = "formal"  # formal | sarcastic | humorous_tech | humorous_non_tech
+    """Audience for the on-demand Gemma caption of the recommendation video."""
+    style: str = "tech"  # tech (hiring manager) | non_tech (HR)
 
 
 class AnalysisIn(BaseModel):

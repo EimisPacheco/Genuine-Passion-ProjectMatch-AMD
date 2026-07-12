@@ -24,12 +24,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 </div>
               </div>
             </Link>
+            {/* No speed race: Track 3 doesn't score speed or tokens, so the GPU is
+                spent on more thinking rather than on a faster number. */}
             <nav className="flex items-center gap-4 text-sm">
               <Link href="/" className="text-slate-400 hover:text-brand">
                 Investigate
-              </Link>
-              <Link href="/race" className="font-medium text-brand hover:text-brand-deep">
-                ⚡ Speed Race
               </Link>
             </nav>
           </header>

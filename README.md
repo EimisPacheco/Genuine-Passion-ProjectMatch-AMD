@@ -4,9 +4,56 @@
 
 🔗 **Live app:** <https://passion-intelligence.vercel.app> · **API health:** <https://129-212-179-131.sslip.io/api/health>
 
-> Built for the **AMD Developer Hackathon (ACT II — Track 3)**. Everything runs on
-> **Gemma 4 31B served by Ollama on the AMD MI300X**: text reasoning, vision, *and*
-> embeddings. See [docs/AMD_SUBMISSION.md](docs/AMD_SUBMISSION.md).
+> **AMD Developer Hackathon — ACT II · Track 3 (🦄 Unicorn).** Open-source models on
+> AMD infrastructure, built as a product. Everything — reasoning, vision, **and**
+> embeddings — runs on **Gemma 4 31B via Ollama/ROCm on an AMD Instinct MI300X**.
+> See [docs/AMD_SUBMISSION.md](docs/AMD_SUBMISSION.md).
+
+---
+
+## Track 3 — how this submission answers the brief
+
+Track 3 says: *"Your idea. AMD infrastructure. No benchmarks, no constraints — just
+build… Judges are looking for creativity, originality, completeness, use of AMD
+platforms, and product/market potential. Think startup pitch, not benchmark run."*
+
+| Judging criterion | How this project answers it |
+|---|---|
+| **Creativity** | We don't rank resumes. We rank **evidence of obsession** — what someone builds voluntarily, at midnight, for no prize. Passion is inferred from public artifacts, not claimed. |
+| **Originality** | **Free Discovery**: you supply *no candidate names at all*. The system searches GitHub from your mission alone and investigates people **who never applied and never would have found you**. That's sourcing, not screening. |
+| **Completeness** | A shipped product, not a notebook: **[live app](https://passion-intelligence.vercel.app)**, hosted API, Cloud SQL persistence, an 18-test anti-hallucination suite, and a rendered, captioned recommendation video. |
+| **Use of AMD platforms** | **All three modalities on one MI300X** — text, vision *and* embeddings — through **ROCm**. Verified below. |
+| **Product / market potential** | Aimed squarely at **startups**: they can't outbid Big Tech, so they must find the few engineers already obsessed with their problem. This replaces a sourcer they can't afford and a recruiter seat they can't justify. |
+
+**We deliberately removed the speed-race view.** The track states submissions are
+*not scored on speed or token usage* — so a benchmark showcase would have been
+answering a question nobody asked. The GPU is used to do more *thinking*, not to
+post a faster number.
+
+### Proof it really runs on AMD (not CPU, not a hosted API)
+
+```text
+$ rocm-smi
+Card Series: AMD Instinct MI300X          274 W    43 °C    VRAM 205 GB
+
+$ ollama ps
+NAME          SIZE     PROCESSOR    CONTEXT
+gemma4:31b    23 GB    100% GPU     262144        # ← fully resident on the MI300X
+
+$ docker logs ollama | grep ROCm
+clip_ctx: CLIP using ROCm0 backend                # ← even the vision encoder is on ROCm
+sched_reserve: ROCm0 compute buffer size = 1752.07 MiB
+```
+
+Container image `ollama/ollama:rocm`, bound to the ROCm device nodes `/dev/kfd`
+and `/dev/dri`, on an **AMD Developer Cloud** droplet.
+
+### Everything in the stack is open source
+
+**Gemma 4 31B** (open weights) · **all-minilm** (open embeddings) · **Ollama** ·
+**ROCm** · **LangGraph** · **FastAPI** · **PostgreSQL + pgvector** · **Next.js** ·
+**ffmpeg**. No proprietary model sits on the critical path — swap the GPU host and
+the whole system still runs.
 
 Resumes describe what people *say* they can do. Side projects reveal what they
 *can't stop building*. This system turns that into a **10-agent investigation**:
@@ -58,8 +105,8 @@ See [docs/DEPLOY.md](docs/DEPLOY.md).
 
 | What | Where | Notes |
 |---|---|---|
-| **Gemma 4 31B** (`gemma4:31b`) | Ollama on the **AMD Instinct MI300X** | Reasoning **and** vision — one model does both |
-| **AMD GPU embeddings** | `all-minilm` via Ollama on the **same MI300X** | 384-dim, feeds pgvector |
+| **Gemma 4 31B** (`gemma4:31b`, open weights) | **Ollama + ROCm** on the **AMD Instinct MI300X** (AMD Developer Cloud) | Reasoning **and** vision — one open model does both, 100% resident on the GPU |
+| **AMD GPU embeddings** | `all-minilm` via Ollama on the **same MI300X** | 384-dim, feeds pgvector — the third modality on the same AMD GPU |
 | **Google Cloud SQL (PostgreSQL + pgvector)** | GCP | Evidence, scores, embeddings, vector search — and whole analyses, so a shared link survives a restart |
 | **Google Cloud Text-to-Speech** | GCP | `en-US-Studio-O` — the video's narrator |
 | **Google Maps + Geocoding** | GCP | Candidate map; free-text location → city / state / country |

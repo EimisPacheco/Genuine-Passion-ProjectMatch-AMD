@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from backend.app import store
+from backend.app import store, video_caption
 from backend.app.agents.base import agent_step, new_id
 from backend.app.config import settings
 from backend.app.graph.state import ProjectMatchState
@@ -31,6 +31,12 @@ def run(state: ProjectMatchState) -> dict[str, Any]:
         scenes = _build_scenes(company, selected, narratives, candidates)
         result = renderer.render(scenes, settings.video_out_path, basename=f"exec_{analysis_id[:8]}")
 
+        # Caption the WHOLE video up front (one Gemma pass per audience) so the UI
+        # never generates on click and can sync captions to the playhead.
+        captions = video_caption.caption_scenes(
+            str(result.mp4_path) if result.mp4_path else "", result.scenes,
+        )
+
         report = {
             "id": new_id("vid_"),
             "analysis_id": analysis_id,
@@ -40,8 +46,12 @@ def run(state: ProjectMatchState) -> dict[str, Any]:
             "narration_script": result.narration,
             "duration_seconds": float(result.duration),
             "candidate_ids": [r["candidate_id"] for r in selected],
+            "scenes": result.scenes,      # timed narration for the synced script panel
+            "captions": captions,         # {tech: [{start,end,text}], non_tech: [...]}
         }
-        store.save("video_reports", report)
+        # The DB column set is fixed; keep the timeline out of that row.
+        store.save("video_reports", {k: v for k, v in report.items()
+                                     if k not in ("scenes", "captions")})
         h["summary"] = f"video {result.duration:.0f}s, mp4={'yes' if result.mp4_path else 'no'}"
 
     return {"video_report": report}

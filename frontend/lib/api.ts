@@ -64,12 +64,18 @@ export type VisualAnalysis = {
 // Two audiences read the same recommendation video: technical hiring managers, and HR.
 export type CaptionStyle = "tech" | "non_tech";
 
-export type VideoCaption = {
-  style: CaptionStyle;
-  caption: string;
-  provider: string;
-  model: string;
+/** One scene of the video, with its place on the timeline. */
+export type VideoScene = {
+  index: number;
+  title: string;
+  label: string;
+  narration: string;
+  start: number;
+  end: number;
 };
+
+/** A timed caption cue — start/end let the UI follow the playhead. */
+export type CaptionCue = { start: number; end: number; text: string };
 
 // For SSE we connect EventSource straight to the backend: the Next.js dev proxy
 // buffers streaming responses, which makes the live progress bar look frozen.
@@ -99,13 +105,6 @@ export const api = {
     fetch(`/api/analyses/${id}/candidates/${cid}/evidence`).then(j<{ evidence: Evidence[] }>),
   visual: (id: string, cid: string) =>
     fetch(`/api/analyses/${id}/candidates/${cid}/visual`).then(j<{ visual: VisualAnalysis[] }>),
-  // On-demand Gemma caption of the recommendation video, in one chosen style.
-  videoCaption: (id: string, style: CaptionStyle) =>
-    fetch(`/api/analyses/${id}/video/caption`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ style }),
-    }).then(j<VideoCaption>),
   traces: (id: string) => fetch(`/api/analyses/${id}/traces`).then(j<any>),
   video: (id: string) => fetch(`/api/analyses/${id}/video`).then(j<any>),
 };

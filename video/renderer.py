@@ -68,6 +68,9 @@ class VideoResult:
     script_path: Path
     duration: float
     narration: str
+    # Per-scene timeline — what the UI uses to keep captions and the narration
+    # script in sync with playback: [{index, title, narration, start, end}]
+    scenes: list[dict] = field(default_factory=list)
 
 
 def _font(size: int, bold: bool = False) -> ImageFont.FreeTypeFont:
@@ -102,6 +105,20 @@ def render(scenes: list[Scene], out_dir: Path, basename: str = "executive_summar
     total = round(sum(s.duration for s in scenes), 2)
     narration = "\n\n".join(s.narration for s in scenes)
 
+    # Cumulative timeline, so captions/narration can follow the playhead.
+    timeline: list[dict] = []
+    t = 0.0
+    for i, scene in enumerate(scenes):
+        timeline.append({
+            "index": i,
+            "title": scene.title,
+            "label": scene.subtitle_label or scene.title,
+            "narration": scene.narration,
+            "start": round(t, 2),
+            "end": round(t + scene.duration, 2),
+        })
+        t += scene.duration
+
     # 3. render slides + segments + concat (needs ffmpeg)
     mp4_path: Path | None = None
     if shutil.which("ffmpeg"):
@@ -110,7 +127,7 @@ def render(scenes: list[Scene], out_dir: Path, basename: str = "executive_summar
         except Exception as exc:
             print(f"[renderer] ffmpeg render failed, script/srt still produced ({exc})")
 
-    return VideoResult(mp4_path, srt_path, script_path, total, narration)
+    return VideoResult(mp4_path, srt_path, script_path, total, narration, timeline)
 
 
 def _render_mp4(scenes: list[Scene], work: Path, out: Path) -> Path:

@@ -17,7 +17,7 @@ from fastapi import APIRouter, HTTPException
 from fastapi.responses import FileResponse, Response, StreamingResponse
 
 from backend.app import analyses, progress, race, store
-from backend.app.api.schemas import AnalysisIn, ProjectIn, VideoCaptionIn
+from backend.app.api.schemas import AnalysisIn, ProjectIn
 from backend.app.config import settings
 from integrations.scrapers import demo_loader
 
@@ -227,23 +227,6 @@ def candidate_evidence(analysis_id: str, candidate_id: str) -> dict[str, Any]:
     return {"candidate_id": candidate_id, "evidence": evidence}
 
 
-@router.post("/analyses/{analysis_id}/video/caption")
-def generate_video_caption(analysis_id: str, payload: VideoCaptionIn) -> dict[str, Any]:
-    """Caption THIS analysis's recommendation video with Gemma, in one chosen style.
-    On demand only — nothing is generated during the pipeline."""
-    from backend.app import video_caption
-
-    vid = _result(analysis_id).get("video_report", {})
-    try:
-        return video_caption.caption_video(
-            vid.get("mp4_path", ""), vid.get("narration_script", ""), payload.style,
-        )
-    except (FileNotFoundError, ValueError) as exc:
-        raise HTTPException(400, str(exc))
-    except Exception as exc:
-        raise HTTPException(502, f"caption failed: {str(exc)[:160]}")
-
-
 @router.get("/analyses/{analysis_id}/candidates/{candidate_id}/visual")
 def candidate_visual(analysis_id: str, candidate_id: str) -> dict[str, Any]:
     """Gemma 4 vision analyses of the candidate's portfolio images."""
@@ -296,6 +279,10 @@ def video_meta(analysis_id: str) -> dict[str, Any]:
         "mp4_url": f"/api/analyses/{analysis_id}/video/file" if vid.get("mp4_path") else None,
         "srt_url": f"/api/analyses/{analysis_id}/video/subtitles",
         "candidate_ids": vid.get("candidate_ids", []),
+        # Pre-generated: the whole video captioned per audience, plus the timed
+        # narration — everything the UI needs to follow the playhead.
+        "scenes": vid.get("scenes", []),
+        "captions": vid.get("captions", {}),
     }
 
 
@@ -311,9 +298,15 @@ def video_file(analysis_id: str):
 
 
 @router.get("/analyses/{analysis_id}/video/subtitles")
-def video_subtitles(analysis_id: str):
-    """Serve WebVTT (converted from the .srt) so the HTML <track> renders captions."""
+def video_subtitles(analysis_id: str, style: str = "tech"):
+    """WebVTT for the HTML <track>. Serves the pre-generated captions for the chosen
+    audience (so fullscreen viewers see them too); falls back to the rendered .srt."""
+    from backend.app import video_caption
+
     vid = _result(analysis_id).get("video_report", {})
+    cues = (vid.get("captions") or {}).get(style)
+    if cues:
+        return Response(content=video_caption.to_vtt(cues), media_type="text/vtt")
     path = vid.get("srt_path")
     if not path or not Path(path).exists():
         raise HTTPException(404, "subtitles not available")

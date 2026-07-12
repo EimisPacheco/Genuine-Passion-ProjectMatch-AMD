@@ -39,3 +39,6 @@ credentials.csv
 *_accessKeys*.csv
 *.pem
 aws-credentials*
+
+# Claude Code local settings — auto-records commands, which can capture secrets
+.claude/

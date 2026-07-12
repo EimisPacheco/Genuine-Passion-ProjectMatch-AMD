@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { api, API_BASE, Candidate, CaptionStyle, Evidence, VideoCaption, VisualAnalysis, pct } from "@/lib/api";
+import { api, API_BASE, Candidate, CaptionCue, CaptionStyle, Evidence, VideoScene, VisualAnalysis, pct } from "@/lib/api";
 import { ScoreBar } from "@/components/openui/ScoreBar";
 import { CandidateCard } from "@/components/openui/CandidateCard";
 import { EvidenceCard } from "@/components/openui/EvidenceCard";
@@ -417,31 +417,99 @@ const abs = (u?: string | null) => (u && u.startsWith("/") ? `${API_BASE}${u}` :
 
 function VideoViewer({ id, status }: { id: string; status: string }) {
   const [meta, setMeta] = useState<any>(null);
+  const [audience, setAudience] = useState<CaptionStyle>("tech");
+  const [t, setT] = useState(0);                       // playhead, drives all sync
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+
   useEffect(() => {
     if (status === "done") api.video(id).then(setMeta).catch(() => {});
   }, [id, status]);
+
   if (status !== "done") return <Empty msg="The executive video is generated at the end of the analysis." />;
   if (!meta) return <Empty msg="Loading video…" />;
+
+  const scenes: VideoScene[] = meta.scenes || [];
+  const cues: CaptionCue[] = (meta.captions || {})[audience] || [];
+  const activeCue = cues.findIndex((c) => t >= c.start && t < c.end);
+  const activeScene = scenes.findIndex((s) => t >= s.start && t < s.end);
+
+  // Jump the video to a caption/scene when its line is clicked.
+  const seek = (sec: number) => {
+    if (videoRef.current) {
+      videoRef.current.currentTime = sec + 0.05;
+      videoRef.current.play().catch(() => {});
+    }
+  };
+
   return (
     <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
       <div className="card lg:col-span-2">
         <h3 className="mb-3 font-semibold">{meta.title}</h3>
         {meta.has_mp4 ? (
-          <video controls className="w-full rounded-lg" src={abs(meta.mp4_url)}>
-            <track kind="subtitles" src={abs(meta.srt_url)} default />
+          <video
+            ref={videoRef}
+            controls
+            className="w-full rounded-lg"
+            src={abs(meta.mp4_url)}
+            onTimeUpdate={(e) => setT(e.currentTarget.currentTime)}
+          >
+            {/* The audience captions ARE the subtitle track — visible fullscreen too.
+                `key` forces the track to reload when the audience changes. */}
+            <track
+              key={audience}
+              kind="subtitles"
+              label={audience === "tech" ? "Tech hiring manager" : "HR / recruiter"}
+              src={abs(`${meta.srt_url}?style=${audience}`)}
+              default
+            />
           </video>
         ) : (
           <p className="text-slate-400">MP4 not rendered (ffmpeg unavailable) — narration script below.</p>
         )}
-        <div className="mt-3 flex gap-2">
-          <a className="btn-ghost text-sm" href={abs(meta.srt_url)} target="_blank">Download .srt</a>
+
+        {/* Audience switch: both tracks are pre-generated, so this is instant. */}
+        <div className="mt-4 flex flex-wrap items-center gap-2">
+          <span className="text-xs font-semibold uppercase text-brand">Captions for</span>
+          {STYLE_OPTIONS.map((s) => (
+            <button key={s.key} onClick={() => setAudience(s.key)}
+              className={s.key === audience ? "btn text-sm" : "btn-ghost text-sm"}>
+              {s.label}
+            </button>
+          ))}
+          <a className="btn-ghost ml-auto text-sm" href={abs(`${meta.srt_url}?style=${audience}`)} target="_blank">
+            Download captions
+          </a>
         </div>
-        {/* Caption this video with Gemma, in a style you choose — on demand. */}
-        <VideoCaptioner id={id} />
+        <p className="mt-1 text-xs text-slate-500">
+          {STYLE_OPTIONS.find((s) => s.key === audience)?.hint}
+        </p>
+
+        {/* The WHOLE video captioned; the line playing right now is highlighted. */}
+        {cues.length ? (
+          <SyncedList
+            items={cues.map((c, i) => ({ key: i, start: c.start, end: c.end, text: c.text }))}
+            active={activeCue}
+            onPick={seek}
+            title="Full caption"
+          />
+        ) : (
+          <p className="mt-4 text-sm text-slate-500">No captions were generated for this video.</p>
+        )}
       </div>
+
+      {/* Narration script — the paragraph being spoken highlights and scrolls. */}
       <div className="card">
         <div className="mb-2 text-xs font-semibold uppercase text-brand">Narration script</div>
-        <pre className="max-h-[420px] overflow-auto whitespace-pre-wrap text-sm text-slate-300">{meta.narration_script}</pre>
+        {scenes.length ? (
+          <SyncedList
+            items={scenes.map((s) => ({ key: s.index, start: s.start, end: s.end, text: s.narration, label: s.label }))}
+            active={activeScene}
+            onPick={seek}
+            maxH="max-h-[520px]"
+          />
+        ) : (
+          <pre className="max-h-[420px] overflow-auto whitespace-pre-wrap text-sm text-slate-300">{meta.narration_script}</pre>
+        )}
       </div>
     </div>
   );
@@ -452,61 +520,57 @@ const STYLE_OPTIONS: { key: CaptionStyle; label: string; hint: string }[] = [
   { key: "non_tech", label: "HR / recruiter", hint: "Plain language, no jargon — who they are and why they fit." },
 ];
 
-function VideoCaptioner({ id }: { id: string }) {
-  const [style, setStyle] = useState<CaptionStyle>("tech");
-  const [result, setResult] = useState<VideoCaption | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+type SyncedItem = { key: number; start: number; end: number; text: string; label?: string };
 
-  async function generate() {
-    setLoading(true);
-    setError("");
-    setResult(null);
-    try {
-      setResult(await api.videoCaption(id, style));
-    } catch (e: any) {
-      setError(String(e?.message || e).slice(0, 160));
-    } finally {
-      setLoading(false);
-    }
-  }
+/**
+ * A list that follows the video: the entry covering the current playhead is
+ * highlighted and scrolled into view, and clicking any entry seeks the video to it.
+ */
+function SyncedList(
+  { items, active, onPick, title, maxH = "max-h-[320px]" }:
+  { items: SyncedItem[]; active: number; onPick: (s: number) => void; title?: string; maxH?: string },
+) {
+  const refs = useRef<Record<number, HTMLDivElement | null>>({});
+  useEffect(() => {
+    const el = refs.current[active];
+    if (el) el.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  }, [active]);
 
   return (
-    <div className="mt-5 border-t border-slate-800 pt-4">
-      <div className="mb-1 text-xs font-semibold uppercase text-brand">Caption this video for…</div>
-      <p className="mb-3 text-xs text-slate-500">
-        {STYLE_OPTIONS.find((s) => s.key === style)?.hint}
-      </p>
-      <div className="mb-3 flex flex-wrap gap-2">
-        {STYLE_OPTIONS.map((s) => (
-          <button key={s.key} onClick={() => setStyle(s.key)}
-            className={s.key === style ? "btn text-sm" : "btn-ghost text-sm"}>
-            {s.label}
-          </button>
-        ))}
-        <button className="btn text-sm" onClick={generate} disabled={loading}>
-          {loading ? "Generating…" : "Generate caption →"}
-        </button>
+    <div className={title ? "mt-4" : ""}>
+      {title && <div className="mb-2 text-xs font-semibold uppercase text-slate-500">{title}</div>}
+      <div className={`${maxH} space-y-1.5 overflow-auto pr-1`}>
+        {items.map((it, i) => {
+          const on = i === active;
+          return (
+            <div
+              key={it.key}
+              ref={(el) => { refs.current[i] = el; }}
+              onClick={() => onPick(it.start)}
+              className={`cursor-pointer rounded-lg border p-2.5 transition-colors ${
+                on
+                  ? "border-brand/60 bg-brand/10 text-slate-100"
+                  : "border-transparent text-slate-400 hover:border-slate-800 hover:bg-slate-900/40"
+              }`}
+            >
+              <div className="mb-0.5 flex items-center gap-2">
+                <span className={`font-mono text-[10px] ${on ? "text-brand" : "text-slate-600"}`}>
+                  {fmtClock(it.start)}
+                </span>
+                {it.label && <span className="truncate text-[10px] uppercase tracking-wide text-slate-500">{it.label}</span>}
+              </div>
+              <p className="text-sm leading-relaxed">{it.text}</p>
+            </div>
+          );
+        })}
       </div>
-      {loading && (
-        <p className="text-sm text-slate-500">Gemma is watching the video…</p>
-      )}
-      {error && (
-        <p className="rounded-lg border border-red-500/30 bg-red-500/5 p-3 text-sm text-red-200">{error}</p>
-      )}
-      {result && (
-        <div className="rounded-lg border border-slate-800 bg-slate-900/40 p-3">
-          <div className="mb-1 flex items-center justify-between gap-2">
-            <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
-              {STYLE_OPTIONS.find((s) => s.key === result.style)?.label}
-            </span>
-            <span className="chip text-[10px]">{result.provider} · {result.model}</span>
-          </div>
-          <p className="text-slate-200">{result.caption}</p>
-        </div>
-      )}
     </div>
   );
+}
+
+function fmtClock(sec: number): string {
+  const s = Math.max(0, Math.floor(sec));
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 }
 
 function Traces({ id, events }: { id: string; events: any[] }) {

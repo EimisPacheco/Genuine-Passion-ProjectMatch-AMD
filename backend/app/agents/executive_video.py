@@ -25,7 +25,7 @@ def run(state: ProjectMatchState) -> dict[str, Any]:
     narratives = state.get("narratives", {})
     candidates = {c["id"]: c for c in state.get("candidates", [])}
     top_n = state.get("top_n", 3)
-    selected = ranking[:top_n]
+    selected = _select(ranking, candidates, top_n)
 
     with agent_step("executive_video", analysis_id, f"{len(selected)} candidates") as h:
         scenes = _build_scenes(company, selected, narratives, candidates)
@@ -45,6 +45,20 @@ def run(state: ProjectMatchState) -> dict[str, Any]:
         h["summary"] = f"video {result.duration:.0f}s, mp4={'yes' if result.mp4_path else 'no'}"
 
     return {"video_report": report}
+
+
+def _select(ranking, candidates, top_n) -> list[dict[str, Any]]:
+    """The candidates the video features: ONLY the selected Top-N — the highest-ranked
+    candidates that have a LinkedIn (contactable), matching the Rankings view. Never
+    the whole discovered pool. Falls back to rank order if nobody has a LinkedIn, so a
+    video is always produced."""
+    picked: list[dict[str, Any]] = []
+    for r in sorted(ranking, key=lambda x: x.get("rank", 10_000)):
+        if candidates.get(r["candidate_id"], {}).get("linkedin_url"):
+            picked.append(r)
+            if len(picked) >= top_n:
+                break
+    return picked or ranking[:top_n]
 
 
 def _build_scenes(company, selected, narratives, candidates) -> list[Scene]:

@@ -93,6 +93,11 @@ class Settings(BaseSettings):
     # again. Set FEATURED_VIDEO="" to fall back to per-analysis generated videos.
     featured_video: str = "video/out/featured.mp4"
 
+    # Visual Portfolio — each image costs one Gemma vision call, so these two bound
+    # the slowest agent. Lower the cap (or raise concurrency) to speed a run up.
+    visual_max_images: int = 4
+    visual_concurrency: int = 4
+
     # OpenUI (frontend generation — used at build time, flag for reporting)
     openui_enabled: bool = True
 

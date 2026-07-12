@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import base64
 import mimetypes
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import Any
 
@@ -54,7 +55,14 @@ def run(state: ProjectMatchState) -> dict[str, Any]:
         total = 0
         for cid in evidence.keys():
             images = _collect_images(cid, evidence.get(cid, []), live_mode)
-            analyses = [_analyze_image(cid, im, h["trace_handle"]) for im in images]
+            # Vision calls are independent HTTP requests — run them concurrently
+            # instead of one-at-a-time (this agent dominates the run's wall-clock).
+            if len(images) > 1 and settings.visual_concurrency > 1:
+                with ThreadPoolExecutor(max_workers=settings.visual_concurrency) as pool:
+                    analyses = list(pool.map(
+                        lambda im: _analyze_image(cid, im, h["trace_handle"]), images))
+            else:
+                analyses = [_analyze_image(cid, im, h["trace_handle"]) for im in images]
             # Drop photos of people (team/group shots) — but never blank the whole
             # portfolio: if that would remove everything, keep what we have.
             kept = [a for a in analyses if not a.get("has_people")]
@@ -117,7 +125,7 @@ def _collect_images(cid: str, items: list[dict], live_mode: bool | None) -> list
         if key and key not in seen:
             seen.add(key)
             uniq.append(im)
-    return uniq[:8]  # up to 8 images across all sources
+    return uniq[:settings.visual_max_images]  # each image = one Gemma vision call
 
 
 def _analyze_image(cid: str, im: dict[str, Any], trace_handle) -> dict[str, Any]:

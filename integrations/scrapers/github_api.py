@@ -193,6 +193,7 @@ def fetch_user_profile(handle: str) -> dict[str, Any]:
             seen.add(url)
             extra.append(url)
 
+    linkedin = next((u for u in extra if "linkedin.com" in u.lower()), "")
     return {
         "name": u.get("name") or "",
         "bio": bio[:280],
@@ -200,6 +201,8 @@ def fetch_user_profile(handle: str) -> dict[str, Any]:
         "twitter": twitter,
         "company": u.get("company") or "",
         "location": (u.get("location") or "").strip(),  # self-reported city/region
+        "email": (u.get("email") or "").strip(),  # public profile email if set
+        "linkedin": linkedin,  # LinkedIn URL if the profile links one
         "extra_urls": extra,
     }
 

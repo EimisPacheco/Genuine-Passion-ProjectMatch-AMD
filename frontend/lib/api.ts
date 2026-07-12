@@ -6,6 +6,12 @@ export type Candidate = {
   name: string;
   headline: string;
   location?: string;
+  city?: string;
+  state?: string;
+  country?: string;
+  email?: string;
+  linkedin_url?: string;
+  contactable?: boolean;
   rank: number;
   selected: boolean;
   overall_score: number;
@@ -55,6 +61,21 @@ export type VisualAnalysis = {
   model: string;
 };
 
+export type ClipCaption = {
+  id: string;
+  title: string;
+  source_url: string;
+  thumb: string; // data URI of a sampled frame
+  provider: string;
+  model: string;
+  captions: {
+    formal?: string;
+    sarcastic?: string;
+    humorous_tech?: string;
+    humorous_non_tech?: string;
+  };
+};
+
 // For SSE we connect EventSource straight to the backend: the Next.js dev proxy
 // buffers streaming responses, which makes the live progress bar look frozen.
 // Normal fetches stay relative (proxied). CORS on the backend is open.
@@ -83,6 +104,8 @@ export const api = {
     fetch(`/api/analyses/${id}/candidates/${cid}/evidence`).then(j<{ evidence: Evidence[] }>),
   visual: (id: string, cid: string) =>
     fetch(`/api/analyses/${id}/candidates/${cid}/visual`).then(j<{ visual: VisualAnalysis[] }>),
+  captions: (id: string) =>
+    fetch(`/api/analyses/${id}/captions`).then(j<{ clips: ClipCaption[] }>),
   traces: (id: string) => fetch(`/api/analyses/${id}/traces`).then(j<any>),
   video: (id: string) => fetch(`/api/analyses/${id}/video`).then(j<any>),
 };

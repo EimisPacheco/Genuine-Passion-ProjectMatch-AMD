@@ -84,6 +84,11 @@ class Settings(BaseSettings):
     # Video
     video_output_dir: str = "video/out"
     tts_enabled: bool = True
+    # macOS `say` narration voice + rate. Samantha is a clear, professional voice
+    # (far better than the robotic default). Install "Enhanced"/Siri voices in
+    # System Settings → Accessibility → Spoken Content for near-human quality.
+    tts_voice: str = "Samantha"
+    tts_rate: int = 178  # words per minute
     # Pre-generated "featured" video reused everywhere so we never pay to render
     # again. Set FEATURED_VIDEO="" to fall back to per-analysis generated videos.
     featured_video: str = "video/out/featured.mp4"

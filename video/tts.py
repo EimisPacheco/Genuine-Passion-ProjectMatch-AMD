@@ -43,7 +43,15 @@ def _macos_say(text: str, out_path: Path) -> Path | None:
     try:
         with tempfile.NamedTemporaryFile(suffix=".aiff", delete=False) as tmp:
             aiff = Path(tmp.name)
-        subprocess.run(["say", "-o", str(aiff), text], check=True, capture_output=True)
+        opts: list[str] = []
+        if settings.tts_voice:
+            opts += ["-v", settings.tts_voice]
+        if settings.tts_rate:
+            opts += ["-r", str(settings.tts_rate)]
+        try:  # configured voice; fall back to the default if it isn't installed
+            subprocess.run(["say", *opts, "-o", str(aiff), text], check=True, capture_output=True)
+        except subprocess.CalledProcessError:
+            subprocess.run(["say", "-o", str(aiff), text], check=True, capture_output=True)
         subprocess.run(
             ["ffmpeg", "-y", "-i", str(aiff), str(out_path)],
             check=True, capture_output=True,

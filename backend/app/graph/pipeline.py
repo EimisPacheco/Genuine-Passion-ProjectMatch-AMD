@@ -12,6 +12,7 @@ from langgraph.graph import END, START, StateGraph
 
 from backend.app import progress
 from backend.app.agents import (
+    clip_captioning,
     discovery,
     executive_video,
     github_analysis,
@@ -37,6 +38,7 @@ NODES = [
     ("ranking", ranking.run),
     ("storytelling", storytelling.run),
     ("executive_video", executive_video.run),
+    ("clip_captioning", clip_captioning.run),
 ]
 
 

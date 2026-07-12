@@ -37,7 +37,10 @@ PROMPT = (
     "signals (array of 2-5 short lowercase-hyphenated tags, e.g. "
     "'multi-agent-architecture', 'polished-ui', 'evaluation-rigor'), "
     "polish (float 0-1 estimating engineering effort/polish visible), "
-    "domain (2-4 word domain guess)."
+    "domain (2-4 word domain guess), "
+    "has_people (true ONLY if the image is primarily a photograph of one or more "
+    "real people — a team photo, group photo, or portrait; false for diagrams, "
+    "screenshots, UIs, charts, code, logos, or repository preview cards)."
 )
 
 
@@ -52,8 +55,11 @@ def run(state: ProjectMatchState) -> dict[str, Any]:
         for cid in evidence.keys():
             images = _collect_images(cid, evidence.get(cid, []), live_mode)
             analyses = [_analyze_image(cid, im, h["trace_handle"]) for im in images]
-            out[cid] = analyses
-            total += len(analyses)
+            # Drop photos of people (team/group shots) — but never blank the whole
+            # portfolio: if that would remove everything, keep what we have.
+            kept = [a for a in analyses if not a.get("has_people")]
+            out[cid] = kept if kept else analyses
+            total += len(out[cid])
         target = _vision_target()
         how = f"via {target[0]}" if target else "heuristically (no vision provider)"
         h["summary"] = f"analyzed {total} portfolio images {how}"
@@ -77,11 +83,13 @@ def _vision_target() -> tuple[str, str] | None:
 
 
 def _collect_images(cid: str, items: list[dict], live_mode: bool | None) -> list[dict[str, Any]]:
-    """Gather portfolio visuals from EVERY discovered source — GitHub README
-    diagrams + social previews, Devpost/lablab screenshots, Dev.to covers — so
-    Gemma vision reads real architecture images and app screenshots, not just one."""
+    """Gather portfolio visuals from discovered sources — GitHub README diagrams +
+    social previews, Devpost/lablab screenshots, Dev.to covers. To avoid the same
+    repo showing several near-identical cards, we keep only ONE image per repo,
+    preferring a real README image over the generic GitHub social-preview card."""
     imgs = list(demo_loader.portfolio_images_for(cid))
     if live_mode:
+        by_repo: dict[str, list[dict[str, Any]]] = {}
         for e in items:
             ev_title = e.get("title", "")
             ev_url = e.get("url", "")
@@ -90,7 +98,7 @@ def _collect_images(cid: str, items: list[dict], live_mode: bool | None) -> list
                 u = im.get("url")
                 if not u:
                     continue
-                imgs.append({
+                by_repo.setdefault(ev_url or u, []).append({
                     "title": (im.get("alt") or ev_title)[:140],
                     "source_url": ev_url or u,
                     "url": u,
@@ -98,6 +106,10 @@ def _collect_images(cid: str, items: list[dict], live_mode: bool | None) -> list
                     "path": "",
                     "source": src,
                 })
+        for group in by_repo.values():
+            # Sort generic social-preview cards last, keep one real image per repo.
+            group.sort(key=lambda im: "opengraph.githubassets" in (im.get("url") or ""))
+            imgs.append(group[0])
     seen: set[str] = set()
     uniq: list[dict[str, Any]] = []
     for im in imgs:
@@ -147,6 +159,7 @@ def _analyze_image(cid: str, im: dict[str, Any], trace_handle) -> dict[str, Any]
             "signals": [str(s)[:40] for s in (res.get("signals") or [])][:6],
             "polish": _clip(float(res.get("polish", 0.6))),
             "domain": str(res.get("domain", ""))[:60],
+            "has_people": bool(res.get("has_people", False)),
             "provider": provider,
             "model": model,
         })
@@ -187,6 +200,10 @@ def _url_to_data_uri(url: str) -> str:
         return ""
 
 
+_PEOPLE_HINTS = ("team", "group photo", "group picture", "selfie",
+                 "portrait", "our team", "headshot")
+
+
 def _heuristic(im: dict[str, Any]) -> dict[str, Any]:
     title = im.get("title", "portfolio image")
     low = title.lower()
@@ -202,6 +219,9 @@ def _heuristic(im: dict[str, Any]) -> dict[str, Any]:
         ),
         "polish": 0.7 if is_arch else 0.65,
         "domain": "",
+        # Heuristic can only catch obvious people-photo titles; real Gemma vision
+        # classifies the rest.
+        "has_people": any(k in low for k in _PEOPLE_HINTS),
         "provider": "heuristic",
         "model": "none",
     }

@@ -2,6 +2,22 @@
 import { Candidate, pct } from "@/lib/api";
 import { ScoreBar } from "./ScoreBar";
 
+function ContactInfo({ c }: { c: Candidate }) {
+  const place = [c.city, c.state, c.country].filter(Boolean).join(", ") || c.location;
+  const items: JSX.Element[] = [];
+  if (place) items.push(<span key="loc">📍 {place}</span>);
+  if (c.email) items.push(<a key="mail" href={`mailto:${c.email}`} className="hover:text-brand">✉️ {c.email}</a>);
+  if (c.linkedin_url)
+    items.push(<a key="li" href={c.linkedin_url} target="_blank" className="text-emerald-300 hover:text-emerald-200">🔗 LinkedIn</a>);
+  else
+    items.push(<span key="noli" className="text-amber-300/90">⚠️ no LinkedIn — not contactable</span>);
+  return (
+    <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-slate-400">
+      {items}
+    </div>
+  );
+}
+
 export function CandidateCard({ c, onPick }: { c: Candidate; onPick: (cid: string) => void }) {
   return (
     <div className={`card ${c.selected ? "border-brand/50" : "opacity-70"}`}>
@@ -14,6 +30,7 @@ export function CandidateCard({ c, onPick }: { c: Candidate; onPick: (cid: strin
             {c.selected && <span className="chip border-brand/40 text-brand">selected</span>}
           </div>
           <div className="text-xs text-slate-500">{c.headline}</div>
+          <ContactInfo c={c} />
         </div>
         <div className="text-right">
           <div className="text-2xl font-bold text-brand">{pct(c.overall_score)}</div>

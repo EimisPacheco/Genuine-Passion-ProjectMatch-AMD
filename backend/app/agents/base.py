@@ -27,6 +27,7 @@ STEP = {
     "ranking": 8,
     "storytelling": 9,
     "executive_video": 10,
+    "clip_captioning": 11,
 }
 
 

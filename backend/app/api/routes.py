@@ -192,15 +192,29 @@ def ranked_candidates(analysis_id: str) -> dict[str, Any]:
     narratives = result.get("narratives", {})
     names = {c["id"]: c for c in result.get("candidates", [])}
     top_n = result.get("top_n", len(ranking))
+    # LinkedIn is required to be "selected" (successfully considered): fill the
+    # Top-N from the highest-ranked candidates that actually have a LinkedIn URL.
+    selected_ids: set[str] = set()
+    for r in sorted(ranking, key=lambda x: x.get("rank", 10_000)):
+        prof = names.get(r["candidate_id"], {})
+        if prof.get("linkedin_url") and len(selected_ids) < top_n:
+            selected_ids.add(r["candidate_id"])
     out = []
     for r in ranking:
         cid = r["candidate_id"]
+        prof = names.get(cid, {})
         out.append({
             **r,
-            "name": names.get(cid, {}).get("name", cid),
-            "headline": names.get(cid, {}).get("headline", ""),
-            "location": names.get(cid, {}).get("location", ""),
-            "selected": r["rank"] <= top_n,
+            "name": prof.get("name", cid),
+            "headline": prof.get("headline", ""),
+            "location": prof.get("location", ""),
+            "city": prof.get("city", ""),
+            "state": prof.get("state", ""),
+            "country": prof.get("country", ""),
+            "email": prof.get("email", ""),
+            "linkedin_url": prof.get("linkedin_url", ""),
+            "contactable": bool(prof.get("linkedin_url")),
+            "selected": cid in selected_ids,
             "narrative": narratives.get(cid, {}),
         })
     return {"analysis_id": analysis_id, "top_n": top_n, "candidates": out}
@@ -211,6 +225,13 @@ def candidate_evidence(analysis_id: str, candidate_id: str) -> dict[str, Any]:
     result = _result(analysis_id)
     evidence = result.get("evidence", {}).get(candidate_id, [])
     return {"candidate_id": candidate_id, "evidence": evidence}
+
+
+@router.get("/analyses/{analysis_id}/captions")
+def clip_captions(analysis_id: str) -> dict[str, Any]:
+    """Gemma 4-style captions for the fixed clip set (agent 11)."""
+    result = _result(analysis_id)
+    return {"clips": result.get("clip_captions", [])}
 
 
 @router.get("/analyses/{analysis_id}/candidates/{candidate_id}/visual")

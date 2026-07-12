@@ -9,6 +9,7 @@ connectivity so callers can choose DB vector search vs. an in-process cosine fal
 from __future__ import annotations
 
 import contextlib
+import json
 from typing import Any
 
 from backend.app.config import settings
@@ -73,6 +74,27 @@ def vector_search(
         )
     except Exception:
         return []
+
+
+def save_analysis(analysis_id: str, record: dict[str, Any]) -> None:
+    """Persist a whole analysis so a shared link survives a backend restart."""
+    if not available():
+        return
+    with contextlib.suppress(Exception):
+        _backend().save_analysis(
+            analysis_id, str(record.get("status", "")), json.dumps(record, default=str),
+        )
+
+
+def load_analysis(analysis_id: str) -> dict[str, Any] | None:
+    """The persisted analysis, or None when absent / no DB."""
+    if not available():
+        return None
+    try:
+        raw = _backend().load_analysis(analysis_id)
+        return json.loads(raw) if raw else None
+    except Exception:
+        return None
 
 
 def agent_runs(analysis_id: str) -> list[dict[str, Any]]:

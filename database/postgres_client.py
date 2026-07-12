@@ -57,6 +57,9 @@ _TABLES: dict[str, str] = {
     "candidate_scores": "id text, analysis_id text, candidate_id text, overall_score real, project_similarity real, feature_similarity real, domain_similarity real, technology_similarity real, mission_similarity real, genuine_passion real, domain_passion real, technology_passion real, builder_consistency real, innovation real, voluntary_effort real, evidence_quality real, confidence real, rank int, recommendation text, explanation text, evidence_ids text[], created_at timestamptz default now()",
     "agent_runs": "id text, analysis_id text, agent_name text, status text, input_summary text, output_summary text, latency_ms bigint, langfuse_trace_id text, created_at timestamptz default now()",
     "video_reports": "id text, analysis_id text, title text, mp4_path text, srt_path text, narration_script text, duration_seconds real, candidate_ids text[], created_at timestamptz default now()",
+    # Whole analysis record (JSON) so a shared link still resolves after the
+    # backend restarts — the in-memory registry alone would 404.
+    "analyses": "id text primary key, status text, payload text, created_at timestamptz default now()",
 }
 
 
@@ -73,6 +76,23 @@ def run_migrations() -> None:
             f"text text, embedding vector({dim}), created_at timestamptz default now())"
         )
     print("[postgres] migrations applied (pgvector enabled).")
+
+
+def save_analysis(analysis_id: str, status: str, payload: str) -> None:
+    """Upsert the full analysis record so it outlives a restart."""
+    with _connection().cursor() as cur:
+        cur.execute(
+            "INSERT INTO analyses (id, status, payload) VALUES (%s, %s, %s) "
+            "ON CONFLICT (id) DO UPDATE SET status = EXCLUDED.status, payload = EXCLUDED.payload",
+            (analysis_id, status, payload),
+        )
+
+
+def load_analysis(analysis_id: str) -> str | None:
+    with _connection().cursor() as cur:
+        cur.execute("SELECT payload FROM analyses WHERE id = %s", (analysis_id,))
+        row = cur.fetchone()
+    return row[0] if row else None
 
 
 def _vec_literal(v: list[float]) -> str:

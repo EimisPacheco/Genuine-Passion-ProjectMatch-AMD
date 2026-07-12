@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from backend.app import store
 from backend.app.agents.base import new_id
 from backend.app.graph.pipeline import run_pipeline
 from integrations.scrapers import demo_loader
@@ -65,7 +66,10 @@ def run(analysis_id: str) -> dict[str, Any]:
         record.update({"status": "done", "result": final})
     except Exception as exc:  # surface failure to the API
         record.update({"status": "error", "error": str(exc)})
+        store.save_analysis(analysis_id, record)
         raise
+    # Persist the finished analysis so its link still resolves after a restart.
+    store.save_analysis(analysis_id, record)
     return record
 
 
@@ -74,4 +78,12 @@ def set_sources(analysis_id: str, sources: list[dict[str, Any]]) -> None:
 
 
 def get(analysis_id: str) -> dict[str, Any] | None:
-    return _analyses.get(analysis_id)
+    """Memory first (live runs), then the database — so a shared analysis link
+    still works after the backend restarts or redeploys."""
+    record = _analyses.get(analysis_id)
+    if record is not None:
+        return record
+    record = store.load_analysis(analysis_id)
+    if record is not None:
+        _analyses[analysis_id] = record  # warm the fast path
+    return record

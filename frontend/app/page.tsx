@@ -15,25 +15,6 @@ const PRESETS: {
   candidates: Cand[];
 }[] = [
   {
-    label: "Demo · seeded (reliable)",
-    mode: "applicants",
-    live: false,
-    project: {
-      title: "Autonomous AI Recruiting Investigator",
-      description:
-        "An autonomous multi-agent system that investigates candidates by analyzing their public technical work, extracts genuine-passion signals, compares projects with embeddings and vector search, ranks candidates, and writes evidence-cited summaries.",
-      business_problem:
-        "Hiring teams can't tell who is genuinely passionate versus who tailored a resume.",
-      target_users: "Technical recruiters at AI-first companies.",
-      expected_technologies: ["Python", "LangGraph", "Claude", "agents", "vector search"],
-    },
-    candidates: [
-      { id: "cand_ava_nguyen", name: "Yohei Nakajima", headline: "Autonomous agents · BabyAGI", github_handle: "yoheinakajima" },
-      { id: "cand_marco_silva", name: "Abhishek Thakur", headline: "4x Kaggle Grandmaster · ML", github_handle: "abhishekkrthakur" },
-      { id: "cand_priya_rao", name: "Steven Tey", headline: "Full-stack · open-source AI apps", github_handle: "steven-tey" },
-    ],
-  },
-  {
     label: "LIVE · LLM inference platform",
     mode: "applicants",
     live: true,
@@ -100,13 +81,15 @@ export default function Home() {
   const [project, setProject] = useState<any>(PRESETS[0].project);
   const [sources, setSources] = useState<Cand[]>(PRESETS[0].candidates);
   const [topN, setTopN] = useState(3);
-  const [live, setLive] = useState(false);
+  // Every run is live: the seeded demo is hidden, so there is no seeded evidence
+  // to fall back on — an un-ticked 'live' run would simply find nothing.
+  const [live] = useState(true);
   const [loading, setLoading] = useState(false);
   const [activePreset, setActivePreset] = useState(0);
   const [mode, setMode] = useState<Mode>("applicants");
 
   useEffect(() => {
-    // hydrate the seeded preset's technologies from the backend defaults
+    // hydrate expected_features from the backend defaults
     api.defaults().then((d) => {
       setProject((p: any) => ({ ...p, expected_features: d.company_project.expected_features }));
     }).catch(() => {});
@@ -116,14 +99,11 @@ export default function Home() {
     setActivePreset(i);
     setProject(PRESETS[i].project);
     setSources(PRESETS[i].candidates.map((c) => ({ ...c })));
-    setLive(PRESETS[i].live);
     setMode(PRESETS[i].mode);
   }
 
   function switchMode(m: Mode) {
     setMode(m);
-    // Free Discovery finds people from the web, so it needs live sources.
-    if (m === "discovery") setLive(true);
   }
 
   function updateCand(i: number, field: keyof Cand, value: string) {
@@ -200,10 +180,9 @@ export default function Home() {
           ))}
         </div>
         <p className="mt-3 text-xs text-slate-500">
-          “Demo · seeded” is deterministic and offline-safe. In <b>LIVE</b> mode every candidate is
-          checked across <b>all</b> sources — GitHub, Dev.to, Hacker News, Devpost, Kaggle, plus any
-          links auto-discovered from their GitHub profile (personal site, Medium, hackathons).
-          Sources with nothing for a candidate simply return nothing.
+          Every candidate is investigated across <b>all</b> sources — GitHub, Dev.to, Hacker News,
+          Devpost, Kaggle and their personal site — plus <b>LinkedIn, Medium and lablab.ai</b>,
+          unblocked with Bright Data. Everything is read live; nothing is pre-canned.
         </p>
       </section>
 
@@ -255,14 +234,14 @@ export default function Home() {
                   className={n === topN ? "btn" : "btn-ghost"}>Top {n}</button>
               ))}
             </div>
-            <label className="mt-5 flex cursor-pointer items-center gap-2 text-sm text-slate-300">
-              <input type="checkbox" checked={live} onChange={(e) => setLive(e.target.checked)} />
-              Live discovery — query all real sources (slower, real URLs)
-            </label>
-            <p className="mt-3 text-xs text-slate-500">
-              {live
-                ? "Queries every source for each candidate (GitHub, Dev.to, HN, Devpost, Kaggle + links auto-found on their GitHub profile); empty sources return nothing."
-                : "Uses seeded demo evidence for the candidates below."}
+            <p className="mt-5 text-xs text-slate-500">
+              Every source is queried live for each candidate — GitHub, Dev.to, Hacker News,
+              Devpost, Kaggle, their personal site, plus <b className="text-slate-300">LinkedIn,
+              Medium and lablab.ai</b> through Bright Data. A source with nothing for a candidate
+              simply returns nothing.
+            </p>
+            <p className="mt-2 text-xs text-amber-200/70">
+              Real scraping and Gemma on one GPU — a run takes a few minutes.
             </p>
           </div>
           <button className="btn mt-6 w-full" onClick={launch}

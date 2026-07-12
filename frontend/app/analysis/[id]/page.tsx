@@ -408,6 +408,13 @@ function EvidenceExplorer({ id, candidates, topN, cid, setCid }: any) {
   );
 }
 
+/**
+ * Media (video, subtitles, portfolio images) is fetched STRAIGHT from the backend
+ * rather than through the Next.js rewrite, so a large MP4 never streams through
+ * Vercel's proxy. CORS on the backend is open, so this is safe cross-origin.
+ */
+const abs = (u?: string | null) => (u && u.startsWith("/") ? `${API_BASE}${u}` : u || undefined);
+
 function VideoViewer({ id, status }: { id: string; status: string }) {
   const [meta, setMeta] = useState<any>(null);
   useEffect(() => {
@@ -420,14 +427,14 @@ function VideoViewer({ id, status }: { id: string; status: string }) {
       <div className="card lg:col-span-2">
         <h3 className="mb-3 font-semibold">{meta.title}</h3>
         {meta.has_mp4 ? (
-          <video controls className="w-full rounded-lg" src={meta.mp4_url}>
-            <track kind="subtitles" src={meta.srt_url} default />
+          <video controls className="w-full rounded-lg" src={abs(meta.mp4_url)}>
+            <track kind="subtitles" src={abs(meta.srt_url)} default />
           </video>
         ) : (
           <p className="text-slate-400">MP4 not rendered (ffmpeg unavailable) — narration script below.</p>
         )}
         <div className="mt-3 flex gap-2">
-          <a className="btn-ghost text-sm" href={meta.srt_url} target="_blank">Download .srt</a>
+          <a className="btn-ghost text-sm" href={abs(meta.srt_url)} target="_blank">Download .srt</a>
         </div>
         {/* Caption this video with Gemma, in a style you choose — on demand. */}
         <VideoCaptioner id={id} />

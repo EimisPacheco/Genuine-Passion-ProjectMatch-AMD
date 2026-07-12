@@ -6,7 +6,8 @@
       "Bash(rm -f backend/app/agents/clip_captioning.py)",
       "Bash(scp -q -i ~/.ssh/id_ed25519 /tmp/droplet.env root@129.212.179.131:/opt/projectmatch/.env)",
       "Bash(scp -q -i ~/.ssh/id_ed25519 gcp-sa-key.json root@129.212.179.131:/opt/projectmatch/gcp-sa-key.json)",
-      "Bash(rm -f /tmp/droplet.env)"
+      "Bash(rm -f /tmp/droplet.env)",
+      "Bash(NEXT_PUBLIC_API_BASE=https://129-212-179-131.sslip.io npx --no-install next build)"
     ]
   }
 }

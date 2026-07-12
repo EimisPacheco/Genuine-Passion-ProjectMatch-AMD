@@ -1,0 +1,29 @@
+Every hiring team is reading the wrong document.
+
+A resume is a sales document — it tells you what a person wants you to believe. But there is another record, and nobody writes it for a recruiter. The repositories they push to at midnight. The hackathon they entered with no prize on the line. The architecture diagram they drew because they could not let the problem go.
+
+That record tells you what someone cannot stop building.
+
+You cannot rule-base this. Passion is never declared — it has to be inferred. And half the evidence isn't even text. It's the diagram, the dashboard, the model output.
+
+Why does this matter most for startups? A startup cannot outbid Big Tech on salary, and has no brand to trade on. What it can do is find the few engineers already obsessed with its exact problem. The catch is that those people will never apply. They do not know you exist.
+
+And no hiring tool will find them, because every one of them only ranks the pile that already applied. If the right person never applied — and they didn't — the tool is structurally blind.
+
+So we don't wait for them. This is Multi-Agent Passion Intelligence, and it works two ways.
+
+Free Discovery: you provide no names at all. Just your mission. It searches GitHub and investigates strangers who never applied and never would have found you. That is sourcing, not screening. And Applicants, for the pile you already have — only a GitHub handle is required; their blog, Dev.to, Kaggle, Devpost and lablab.ai are discovered for you.
+
+Then ten agents go to work, coordinated by LangGraph. They read repositories, hackathon projects and writing. And Gemma's vision model looks at the architecture diagrams and product screenshots inside those repos, and reports what the work actually demonstrates.
+
+Some of that evidence sits behind a wall. LinkedIn, Medium and lablab.ai block a plain scraper — so Bright Data's Web Unlocker reads them, and that is how we recover the contact trail. A candidate you cannot reach is a dead end. No LinkedIn, no shortlist.
+
+Every claim carries a real URL. If the system says someone is obsessed with wildfire detection from satellite imagery, you click through and read the repository yourself. Eighteen tests fail the build if any score cites evidence that does not exist.
+
+All of it runs on AMD. Gemma 4, thirty-one billion parameters, open weights, on ROCm, on an AMD Instinct MI300X. Not a hosted API — the model sits fully resident on the GPU. And it is not only the text. The vision encoder runs on ROCm too. So do the embeddings, feeding a vector search in Cloud SQL. Reasoning, vision, and embeddings. Three modalities. One AMD GPU.
+
+And it is live right now. Not a notebook — a deployed product, with a hosted API, a real database, and every candidate it finds saved with the trail to reach them.
+
+Resumes tell you what people want you to believe.
+
+We read what they build when nobody is watching.

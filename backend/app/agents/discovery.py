@@ -78,6 +78,8 @@ def run(state: ProjectMatchState) -> dict[str, Any]:
                 )
             evidence_map[cid] = items
 
+            # Persist the whole person, contact trail included — a candidate found by
+            # Free Discovery is only useful later if we kept how to reach them.
             store.save(
                 "candidate_profiles",
                 {
@@ -87,6 +89,11 @@ def run(state: ProjectMatchState) -> dict[str, Any]:
                     "sources": cand.get("sources", []),
                     "github_handle": cand.get("github_handle", ""),
                     "location": cand.get("location", ""),
+                    "city": cand.get("city", ""),
+                    "state": cand.get("state", ""),
+                    "country": cand.get("country", ""),
+                    "email": cand.get("email", ""),
+                    "linkedin_url": cand.get("linkedin_url", ""),
                 },
             )
             store.save_many(

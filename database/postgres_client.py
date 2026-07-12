@@ -49,7 +49,9 @@ def available() -> bool:
 # --- schema (Postgres + pgvector) ---
 _TABLES: dict[str, str] = {
     "company_projects": "id text, title text, description text, business_problem text, target_users text, mission text, goals text[], domain_tags text[], feature_tags text[], technologies text[], complexity text, innovation_indicators text[], success_criteria text, desired_candidates int, created_at timestamptz default now()",
-    "candidate_profiles": "id text, name text, headline text, sources text[], github_handle text, location text, created_at timestamptz default now()",
+    # The discovered talent graph: who they are AND how to reach them. Free Discovery
+    # finds people who never applied, so the contact trail is the whole point of keeping it.
+    "candidate_profiles": "id text, name text, headline text, sources text[], github_handle text, location text, city text, state text, country text, email text, linkedin_url text, created_at timestamptz default now()",
     "candidate_projects": "id text, candidate_id text, source text, title text, url text, description text, technologies text[], domain_tags text[], feature_tags text[], mission text, created_at timestamptz default now()",
     "github_projects": "id text, candidate_id text, repo_full_name text, url text, description text, languages text[], dependencies text[], stars bigint, forks bigint, quality_score real, architecture_profile text, feature_profile text[], maturity text, last_activity text, created_at timestamptz default now()",
     "hackathon_projects": "id text, candidate_id text, platform text, title text, url text, problem_solved text, features text[], technologies text[], innovation text, execution_quality real, domain_tags text[], awards text[], created_at timestamptz default now()",
@@ -63,12 +65,23 @@ _TABLES: dict[str, str] = {
 }
 
 
+# Columns added after a table already existed. CREATE TABLE IF NOT EXISTS will not
+# add them, so they are applied explicitly on every migrate.
+_ADDED_COLUMNS: dict[str, list[str]] = {
+    "candidate_profiles": ["city text", "state text", "country text",
+                           "email text", "linkedin_url text"],
+}
+
+
 def run_migrations() -> None:
     dim = settings.embedding_dim
     with _connection().cursor() as cur:
         cur.execute("CREATE EXTENSION IF NOT EXISTS vector")
         for name, cols in _TABLES.items():
             cur.execute(f"CREATE TABLE IF NOT EXISTS {name} ({cols})")
+        for table, columns in _ADDED_COLUMNS.items():
+            for col in columns:
+                cur.execute(f"ALTER TABLE {table} ADD COLUMN IF NOT EXISTS {col}")
         # embeddings table uses the pgvector type for similarity search
         cur.execute(
             f"CREATE TABLE IF NOT EXISTS project_embeddings ("
@@ -76,6 +89,15 @@ def run_migrations() -> None:
             f"text text, embedding vector({dim}), created_at timestamptz default now())"
         )
     print("[postgres] migrations applied (pgvector enabled).")
+
+
+def query(sql: str, params: dict[str, Any] | None = None) -> list[dict[str, Any]]:
+    """Raw read. store.fetch() calls this — without it, every fetch silently returned []."""
+    from psycopg.rows import dict_row
+
+    with _connection().cursor(row_factory=dict_row) as cur:
+        cur.execute(sql, params or {})
+        return list(cur.fetchall())
 
 
 def save_analysis(analysis_id: str, status: str, payload: str) -> None:

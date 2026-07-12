@@ -74,6 +74,8 @@ people **already building toward their problem** — most of whom will never app
 
 ## Architecture
 
+![Architecture — Gemma 4 31B on the AMD Instinct MI300X](docs/architecture_amd.png)
+
 ```mermaid
 flowchart TB
   R([Recruiter / founder]) --> FE[Next.js dashboard · Vercel]

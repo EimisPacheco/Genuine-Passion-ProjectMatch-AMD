@@ -1,0 +1,150 @@
+<meta charset="utf-8">
+<style>
+  :root{
+    --ink0:#0A0E1F; --ink1:#141A33; --ink2:#241B44;
+    --amber:#F5A524; --sky:#38BDF8; --violet:#A78BFA; --emerald:#34D399;
+    --fg:#EEF2FF; --muted:#9AA6BF; --dim:#6B7793;
+    --line:rgba(255,255,255,.10); --card:rgba(255,255,255,.05);
+    --sans:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Helvetica,Arial,sans-serif;
+    --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box;margin:0}
+  body{width:1440px;height:690px;font-family:var(--sans);color:var(--fg);
+    background:
+      radial-gradient(1000px 620px at 88% 108%, rgba(167,139,250,.20), transparent 60%),
+      radial-gradient(820px 540px at 8% -12%, rgba(56,189,248,.12), transparent 55%),
+      linear-gradient(160deg,var(--ink0) 0%,var(--ink1) 55%,var(--ink2) 100%);
+    padding:26px 30px;position:relative}
+  body::before{content:"";position:absolute;inset:0 0 auto 0;height:5px;
+    background:linear-gradient(90deg,#F97316,var(--amber),#FDE68A,var(--amber),#F97316)}
+
+  .title{text-align:center;margin-bottom:4px;font-size:21px;font-weight:800;letter-spacing:-.4px}
+  .title .a{color:var(--amber)}
+  .sub{text-align:center;color:var(--muted);font-size:12.5px;margin-bottom:16px}
+
+  .row{display:grid;grid-template-columns:1fr 84px 1.12fr 84px 1fr;align-items:stretch}
+  .panel{border-radius:14px;padding:13px 13px 11px;border:1px solid var(--line);display:flex;flex-direction:column;gap:8px}
+  .p1{background:rgba(56,189,248,.07);border-color:rgba(56,189,248,.32)}
+  .p2{background:rgba(245,165,36,.07);border-color:rgba(245,165,36,.32)}
+  .p3{background:rgba(167,139,250,.08);border-color:rgba(167,139,250,.32)}
+  .phead{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:1px}
+  .phead h2{font-size:15.5px;font-weight:800;letter-spacing:-.2px}
+  .p1 h2{color:var(--sky)} .p2 h2{color:var(--amber)} .p3 h2{color:var(--violet)}
+  .where{font:600 9.5px var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--dim);
+    border:1px solid var(--line);border-radius:999px;padding:3px 8px;white-space:nowrap}
+
+  .box{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:8px 11px}
+  .box .t{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:700;margin-bottom:3px}
+  .box .d{font-size:11.2px;line-height:1.45;color:var(--muted)}
+  .box .d b{color:#D8E0F0;font-weight:650}
+  .bl{border-left:3px solid var(--amber)} .bl.s{border-left-color:var(--sky)}
+  .bl.v{border-left-color:var(--violet)} .bl.e{border-left-color:var(--emerald)}
+
+  .tag{font:600 9px var(--mono);padding:2px 6px;border-radius:999px;white-space:nowrap;
+    border:1px solid rgba(245,165,36,.45);color:#FFC862;background:rgba(245,165,36,.09)}
+  .tag.s{border-color:rgba(56,189,248,.45);color:#7DD3FC;background:rgba(56,189,248,.09)}
+  .tag.v{border-color:rgba(167,139,250,.45);color:#C4B5FD;background:rgba(167,139,250,.09)}
+  .tag.e{border-color:rgba(52,211,153,.45);color:#6EE7B7;background:rgba(52,211,153,.09)}
+
+  .arrow{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px}
+  .arrow .lbl{font:600 8.5px var(--mono);color:var(--dim);text-align:center;line-height:1.35;letter-spacing:.03em}
+  .arrow .gl{font-size:19px;color:var(--amber);line-height:1}
+
+  .rail{margin-top:13px;display:flex;align-items:center;gap:12px;
+    border:1px solid rgba(52,211,153,.3);background:rgba(52,211,153,.06);border-radius:11px;padding:9px 14px}
+  .rail .back{font:700 11.5px var(--mono);color:var(--emerald);white-space:nowrap}
+  .rail .txt{font-size:12px;color:var(--muted);line-height:1.45}
+  .rail .txt b{color:#D8E0F0}
+
+  .note{margin-top:9px;display:flex;gap:8px;align-items:center;justify-content:center;flex-wrap:wrap}
+  .note span{font:600 9.5px var(--mono);color:var(--dim)}
+</style>
+
+<div class="title">Multi-Agent Passion Intelligence — <span class="a">Gemma 4 31B on the AMD Instinct MI300X</span></div>
+<div class="sub">Reasoning, vision <b>and</b> embeddings all execute on one AMD GPU through ROCm. The backend runs on the GPU host, so Gemma is reached over localhost — no tunnel.</div>
+
+<div class="row">
+
+  <!-- 1 -->
+  <div class="panel p1">
+    <div class="phead"><h2>1 · Experience &amp; Intake</h2><span class="where">Vercel</span></div>
+    <div class="box bl s">
+      <div class="t">🖥️ Next.js dashboard <span class="tag s">OpenUI</span></div>
+      <div class="d">Live agent progress (SSE) · Rankings with cited scores, contact + <b>map</b> · Evidence explorer · Video with <b>synced dual-audience captions</b></div>
+    </div>
+    <div class="box bl e">
+      <div class="t">🔭 Free Discovery <span class="tag e">no names</span></div>
+      <div class="d">Supply <b>nothing</b> about people — just the mission. GitHub is searched for builders who <b>never applied</b>.</div>
+    </div>
+    <div class="box bl s">
+      <div class="t">📋 Applicants <span class="tag s">handle only</span></div>
+      <div class="d">Only a <b>GitHub handle</b> is required. Blog, Dev.to, Kaggle, Devpost and hackathons are auto-discovered from the public profile.</div>
+    </div>
+  </div>
+
+  <div class="arrow"><div class="lbl">mission<br>(+ handles)</div><div class="gl">➜</div></div>
+
+  <!-- 2 -->
+  <div class="panel p2">
+    <div class="phead"><h2>2 · Multi-Agent Investigation</h2><span class="where">AMD droplet · FastAPI + Caddy + systemd</span></div>
+    <div class="box bl">
+      <div class="t">🌐 Evidence Discovery</div>
+      <div class="d">GitHub · Dev.to · Hacker News · Devpost · Kaggle · personal sites. <b>Every item keeps its source URL.</b></div>
+    </div>
+    <div class="box bl">
+      <div class="t">🕸️ 10-Agent Pipeline <span class="tag">LangGraph</span></div>
+      <div class="d">understand → discover → github → hackathon → <b>vision</b> → passion → similarity → rank → story → video</div>
+    </div>
+    <div class="box bl v">
+      <div class="t">👁️ Visual Portfolio <span class="tag v">Gemma vision</span></div>
+      <div class="d">Architecture diagrams and product screenshots read by Gemma. Photos of people filtered out.</div>
+    </div>
+    <div class="box bl e">
+      <div class="t">🏅 Ranking &amp; Storytelling <span class="tag e">cited</span></div>
+      <div class="d">Transparent weighted score. <b>LinkedIn required to be selected</b> — the shortlist is people you can actually contact.</div>
+    </div>
+    <div class="box bl">
+      <div class="t">🎬 Recommendation Video</div>
+      <div class="d"><b>ffmpeg + Pillow</b> render, narrated by <b>Google Cloud TTS</b>, captioned for <b>tech</b> and <b>HR</b> audiences.</div>
+    </div>
+  </div>
+
+  <div class="arrow"><div class="lbl">prompts<br>+ images<br>+ vectors</div><div class="gl">➜</div></div>
+
+  <!-- 3 -->
+  <div class="panel p3">
+    <div class="phead"><h2>3 · Models &amp; Data</h2><span class="where">AMD MI300X · GCP</span></div>
+    <div class="box bl">
+      <div class="t">🧠 Gemma 4 31B <span class="tag">Ollama · ROCm</span></div>
+      <div class="d">Open weights. <b>Text + vision in one model</b>, 23 GB <b>100% resident on the GPU</b>. The CLIP encoder runs on the ROCm backend.</div>
+    </div>
+    <div class="box bl s">
+      <div class="t">🧮 GPU embeddings <span class="tag s">all-minilm</span></div>
+      <div class="d">384-dim vectors from the <b>same MI300X</b> — the third modality on the one AMD GPU.</div>
+    </div>
+    <div class="box bl v">
+      <div class="t">🗄️ Cloud SQL + pgvector</div>
+      <div class="d">Evidence, scores, embeddings and whole analyses — so a shared link survives a restart. Semantic search, not keywords.</div>
+    </div>
+    <div class="box bl e">
+      <div class="t">🔊 Google Cloud TTS · 🗺️ Maps</div>
+      <div class="d">Studio-voice narrator; geocoding turns a profile location into <b>city / state / country</b> on the map.</div>
+    </div>
+    <div class="box bl">
+      <div class="t">📊 Langfuse</div>
+      <div class="d">Traces every agent span and every Gemma call.</div>
+    </div>
+  </div>
+</div>
+
+<div class="rail">
+  <div class="back">◀ RETURNED</div>
+  <div class="txt"><b>Ranked, contactable candidates</b> — every score citing a real URL — plus the evidence trail, the map, and a narrated video captioned for both a technical hiring manager and HR. <b>Nothing is invented:</b> 18 tests fail the build if a score cites evidence that does not exist.</div>
+</div>
+
+<div class="note">
+  <span>100% open-source models</span><span>·</span>
+  <span>no Veo (no quota) — honest ffmpeg render</span><span>·</span>
+  <span>no Bright Data (no zone provisioned)</span><span>·</span>
+  <span>no speed benchmark — Track 3 does not score speed</span>
+</div>

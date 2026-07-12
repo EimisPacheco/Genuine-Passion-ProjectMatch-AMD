@@ -24,7 +24,14 @@ def _connection():
     if _conn is None or getattr(_conn, "closed", True):
         import psycopg
 
-        _conn = psycopg.connect(settings.database_url, autocommit=True)
+        # Always bound the connect: an unreachable host (e.g. an IP that is not in
+        # Cloud SQL's authorized networks) otherwise hangs the process — which would
+        # block app startup instead of degrading to the in-memory store.
+        _conn = psycopg.connect(
+            settings.database_url,
+            autocommit=True,
+            connect_timeout=settings.db_connect_timeout,
+        )
     return _conn
 
 

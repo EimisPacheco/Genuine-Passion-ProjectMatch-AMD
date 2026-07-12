@@ -58,6 +58,10 @@ class Settings(BaseSettings):
     langfuse_secret_key: str = ""
     langfuse_host: str = "https://cloud.langfuse.com"
 
+    # Seconds to wait for the database before giving up and running in-memory.
+    # Keeps an unreachable DB from hanging startup.
+    db_connect_timeout: int = 5
+
     # GitHub
     github_token: str = ""
 

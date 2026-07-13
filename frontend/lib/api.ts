@@ -14,6 +14,8 @@ export type Candidate = {
   contactable?: boolean;
   /** Why each score is what it is — keyed by score field. */
   reasons?: Record<string, string>;
+  /** Technologies the candidate has actually used, across all their evidence. */
+  technologies?: string[];
   rank: number;
   selected: boolean;
   overall_score: number;

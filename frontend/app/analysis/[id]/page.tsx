@@ -305,6 +305,18 @@ function CandidateDetail({ id, candidates, topN, cid, setCid, onEvidence }: any)
               {c.narrative.passion_signals}
             </div>
           )}
+          {(c.technologies?.length ?? 0) > 0 && (
+            <div className="mt-4">
+              <div className="mb-2 text-xs font-semibold uppercase text-slate-500">
+                Technologies used <span className="text-slate-600">· from their repos + AI discovery</span>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {c.technologies!.map((t) => (
+                  <span key={t} className="chip normal-case text-[11px]">{t}</span>
+                ))}
+              </div>
+            </div>
+          )}
           <VisualStrip id={id} cid={c.candidate_id} />
           <div className="mt-4">
             <div className="mb-2 text-xs font-semibold uppercase text-slate-500">Most relevant projects</div>

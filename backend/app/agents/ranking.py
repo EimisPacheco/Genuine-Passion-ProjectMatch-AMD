@@ -19,6 +19,7 @@ from typing import Any
 
 from backend.app import store
 from backend.app.agents.base import agent_step, new_id
+from backend.app.agents.common import TECH_VOCAB, heuristic_tags
 from backend.app.graph.state import ProjectMatchState
 
 WEIGHTS = {
@@ -68,6 +69,7 @@ def run(state: ProjectMatchState) -> dict[str, Any]:
                 company, items, p, s, github.get(cid, []), visual.get(cid, []),
                 hackathon.get(cid, []), evidence_quality,
             )
+            technologies = _technologies(items)
 
             rows.append(
                 {
@@ -79,6 +81,7 @@ def run(state: ProjectMatchState) -> dict[str, Any]:
                     "evidence_quality": round(evidence_quality, 3),
                     "evidence_ids": evidence_ids,
                     "reasons": reasons,
+                    "technologies": technologies,
                     **{k: round(v, 3) for k, v in components.items()},
                     "feature_similarity": s.get("feature_similarity", 0.0),
                     "mission_similarity": s.get("mission_similarity", 0.0),
@@ -120,6 +123,34 @@ def _plural(n: int, one: str, many: str) -> str:
 def _overlap(a: list[str], b: list[str]) -> list[str]:
     lower = {x.lower() for x in b}
     return sorted({x for x in a if x.lower() in lower})
+
+
+def _technologies(items: list[dict[str, Any]], limit: int = 24) -> list[str]:
+    """Every technology the candidate has actually used, from ALL their evidence:
+    the languages/topics GitHub reports on each repo, PLUS anything from the shared
+    tech vocabulary that shows up in the titles and descriptions (a repo's real
+    stack is often only named in its README, not its `language` field). Ordered by
+    how often it recurs, so the stack they lean on rises to the top."""
+    from collections import Counter
+
+    counts: Counter[str] = Counter()
+    display: dict[str, str] = {}
+    for e in items:
+        text = f"{e.get('title', '')} {e.get('description', '')}"
+        tags = (
+            list(e.get("technologies", []))
+            + list(e.get("domain_tags", []))
+            + heuristic_tags(text, TECH_VOCAB)
+        )
+        for t in tags:
+            t = (t or "").strip()
+            if not t:
+                continue
+            key = t.lower()
+            counts[key] += 1
+            display.setdefault(key, t)
+    ranked = sorted(counts, key=lambda k: (-counts[k], k))
+    return [display[k] for k in ranked[:limit]]
 
 
 def _reasons(

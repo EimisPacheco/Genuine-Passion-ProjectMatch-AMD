@@ -112,6 +112,7 @@ See [docs/DEPLOY.md](docs/DEPLOY.md).
 | **Google Cloud SQL (PostgreSQL + pgvector)** | GCP | Evidence, scores, embeddings, vector search — and whole analyses, so a shared link survives a restart |
 | **Google Cloud Text-to-Speech** | GCP | `en-US-Studio-O` — the video's narrator |
 | **Google Maps + Geocoding** | GCP | Candidate map; free-text location → city / state / country |
+| **Bright Data — Web Unlocker + SERP** | — | Unblocks LinkedIn, Medium and lablab.ai; and a Google search to **find a LinkedIn** when GitHub lists none |
 | **GitHub REST API** | — | Discovery, profile enrichment, and candidate *search* for Free Discovery |
 | **LangGraph** | droplet | The 10-agent pipeline |
 | **FastAPI + SSE** | droplet (systemd + Caddy TLS) | API and live progress |
@@ -123,10 +124,6 @@ See [docs/DEPLOY.md](docs/DEPLOY.md).
 
 - **Veo** — the Gemini API returns `429` (no Veo quota on the free tier). The video
   is therefore the **ffmpeg narrated slideshow**, not generated footage.
-- **Bright Data** — the client exists
-  ([brightdata_client.py](integrations/scrapers/brightdata_client.py)), but no Web
-  Unlocker zone is provisioned on the account, so LinkedIn/Medium unblocking is
-  **not active**. Every other source is read directly.
 - **sentence-transformers** — superseded by GPU embeddings on the MI300X.
 
 ---
@@ -139,21 +136,31 @@ Two ways in:
   GitHub from your mission alone, finds builders who never applied, and
   investigates them.
 - **📋 Applicants** — only a **GitHub handle** is required. Name and links are
-  optional; the app auto-discovers the rest (Dev.to, HN, Devpost, Kaggle, personal
-  site, Medium) from the GitHub profile.
+  optional; the app auto-discovers the rest (Dev.to, HN, Devpost, Kaggle, lablab.ai,
+  personal site, Medium) from the GitHub profile.
 
 Then:
 
-1. Evidence is discovered across every public source, and **every item keeps its URL**.
+1. Evidence is discovered across every public source, and **every item keeps its
+   URL**. Bot-blocked sources (LinkedIn, Medium, lablab.ai) are read through
+   **Bright Data**.
 2. **Gemma vision** reads architecture diagrams and product screenshots (photos of
    people are filtered out).
 3. Passion, similarity (tag overlap + **pgvector** search over MI300X embeddings)
-   and a transparent weighted score rank the candidates.
+   and a transparent weighted score rank the candidates — and **every score is
+   auditable**: click it to see exactly why (which domains matched, how many repos,
+   how many sources). The **technologies** the candidate actually uses are listed,
+   pulled from their repos *and* mined from the text.
 4. **LinkedIn is required to be selected** — the shortlist is people you can
-   actually contact. A **map** shows where they are.
-5. A **narrated recommendation video** is rendered and captioned for **two
-   audiences** — a *technical hiring manager* and an *HR recruiter* — with the
+   actually contact. When GitHub lists no LinkedIn, it's **found by web search and
+   verified by Gemma** (never guessed). A **Google map** shows where they are.
+5. A **narrated recommendation video** is rendered and captioned by **Gemma** for
+   **two audiences** — a *technical hiring manager* and an *HR recruiter* — with the
    captions and the narration script **synced to playback**.
+
+Every run is **live** (real scraping + Gemma on one GPU, so it takes a few
+minutes). Every discovered candidate — with their contact trail — is persisted to
+Cloud SQL, so a shared analysis link survives a restart.
 
 ---
 
@@ -169,7 +176,7 @@ cd frontend && npm install && npm run dev  # UI on :3000
 ```
 
 With no Gemma reachable every agent degrades to deterministic heuristics, so the
-seeded demo still runs offline. `LIVE_MODE=false` (default) uses `demo_data/`.
+test suite still runs fully offline. The deployed app always runs live.
 
 ---
 

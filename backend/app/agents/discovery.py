@@ -18,19 +18,42 @@ from backend.app.llm import embeddings
 from integrations.scrapers import dispatch, geocode, github_api, linkedin_finder
 
 
+def _resolve_display_name(cand: dict[str, Any], live_mode: bool | None,
+                          prof: dict[str, Any] | None = None) -> None:
+    """Show the person's real name, not their GitHub login. Free Discovery seeds
+    `name` with the handle (it's all the search API gives us); replace it with the
+    real name off their GitHub profile as soon as we know it. If we already have a
+    real name (Applicants, or an earlier resolve), leave it alone."""
+    handle = (cand.get("github_handle") or "").strip()
+    current = (cand.get("name") or "").strip()
+    if current and current.lower() != handle.lower():
+        return  # already a real name — don't clobber it
+    real = (prof.get("name") or "").strip() if prof else ""
+    if not real and live_mode and handle:
+        try:
+            real = (github_api.fetch_user_profile(handle).get("name") or "").strip()
+        except Exception:
+            real = ""
+    if real:
+        cand["name"] = real
+
+
 def _enrich_contact(cand: dict[str, Any], live_mode: bool | None) -> None:
     """Best-effort contact info for the Rankings view. Live candidates get their
-    public GitHub profile read (location, email, LinkedIn if linked); every
-    candidate with a location is geocoded into city / state / country. All fields
-    are optional — missing data simply stays blank (never fabricated)."""
+    public GitHub profile read (real name, location, email, LinkedIn if linked);
+    every candidate with a location is geocoded into city / state / country. All
+    fields are optional — missing data simply stays blank (never fabricated)."""
+    prof: dict[str, Any] = {}
     if live_mode and cand.get("github_handle"):
         try:
-            prof = github_api.fetch_user_profile(cand["github_handle"])
+            prof = github_api.fetch_user_profile(cand["github_handle"]) or {}
             cand["location"] = cand.get("location") or prof.get("location", "")
             cand["email"] = cand.get("email") or prof.get("email", "")
             cand["linkedin_url"] = cand.get("linkedin_url") or prof.get("linkedin", "")
         except Exception:
-            pass
+            prof = {}
+    # Reuse the profile we just fetched, so this doesn't cost a second API call.
+    _resolve_display_name(cand, live_mode, prof)
     # LinkedIn a recruiter pasted (Applicants tab) — pick it out of the sources.
     if not cand.get("linkedin_url"):
         cand["linkedin_url"] = next(
@@ -64,6 +87,9 @@ def run(state: ProjectMatchState) -> dict[str, Any]:
                 prof = reused["profile"]
                 for k in ("linkedin_url", "location", "city", "state", "country", "email"):
                     cand[k] = cand.get(k) or prof.get(k, "")
+                # Use the stored real name; if that row was saved before we resolved
+                # names (handle only), fall back to a fresh GitHub profile lookup.
+                _resolve_display_name(cand, live_mode, prof)
             else:
                 _enrich_contact(cand, live_mode)
                 items = dispatch.discover(cand, live_mode=live_mode)

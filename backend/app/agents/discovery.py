@@ -11,10 +11,11 @@ from typing import Any
 
 from backend.app import store
 from backend.app.agents.base import agent_step, new_id
+from backend.app.config import settings
 from backend.app.agents.common import DOMAIN_VOCAB, TECH_VOCAB, evidence_text, heuristic_tags
 from backend.app.graph.state import ProjectMatchState
 from backend.app.llm import embeddings
-from integrations.scrapers import dispatch, geocode, github_api
+from integrations.scrapers import dispatch, geocode, github_api, linkedin_finder
 
 
 def _enrich_contact(cand: dict[str, Any], live_mode: bool | None) -> None:
@@ -54,6 +55,14 @@ def run(state: ProjectMatchState) -> dict[str, Any]:
             cid = cand["id"]
             _enrich_contact(cand, live_mode)
             items = dispatch.discover(cand, live_mode=live_mode)
+            # Fallback: if the GitHub profile gave no LinkedIn, find it by web search
+            # (Bright Data SERP + Gemma verify) — motivated builders link their repos
+            # on LinkedIn, so their profile is the top result for name + stack.
+            if live_mode and not cand.get("linkedin_url") and settings.brightdata_enabled and cand.get("name"):
+                tech = [t for e in items for t in e.get("technologies", []) if t][:5]
+                found = linkedin_finder.find(cand["name"], tech, cand.get("github_handle", ""))
+                if found:
+                    cand["linkedin_url"] = found
             for ev in items:
                 # Tag live evidence from the shared vocab (seeded evidence already
                 # carries hand-authored tags) so domain/technology relevance flows

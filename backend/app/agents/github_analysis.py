@@ -7,6 +7,7 @@ scores from evidence confidence and keyword signals.
 """
 from __future__ import annotations
 
+from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 
 from backend.app import store
@@ -27,7 +28,14 @@ def run(state: ProjectMatchState) -> dict[str, Any]:
         n = 0
         for cid, items in evidence.items():
             repos = [e for e in items if e.get("source") == "github"]
-            profiles = [_analyze(cid, e, h["trace_handle"]) for e in repos]
+            # One Gemma call per repo; they're independent, so run them concurrently
+            # instead of one-at-a-time (a prolific candidate can have dozens of repos,
+            # and this loop dominates the run's wall-clock). All repos are analyzed.
+            if len(repos) > 1 and settings.github_concurrency > 1:
+                with ThreadPoolExecutor(max_workers=settings.github_concurrency) as pool:
+                    profiles = list(pool.map(lambda e: _analyze(cid, e, h["trace_handle"]), repos))
+            else:
+                profiles = [_analyze(cid, e, h["trace_handle"]) for e in repos]
             out[cid] = profiles
             n += len(profiles)
             store.save_many(

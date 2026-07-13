@@ -102,6 +102,9 @@ class Settings(BaseSettings):
     # the slowest agent. Lower the cap (or raise concurrency) to speed a run up.
     visual_max_images: int = 4
     visual_concurrency: int = 4
+    # GitHub Analysis — one Gemma call per repo. Prolific candidates can have dozens,
+    # so run them N-at-a-time instead of sequentially. All repos are still analyzed.
+    github_concurrency: int = 4
     # Generic GitHub social-preview cards all render the same layout + avatar, so
     # a wall of them looks duplicated. Prefer real README visuals; allow few cards.
     visual_max_repo_cards: int = 1

@@ -70,7 +70,6 @@ AMD_LLM_MODEL=gemma4:31b
 AMD_LLM_VISION_MODEL=gemma3:12b
 OLLAMA_EMBEDDINGS_URL=http://localhost:11434
 OLLAMA_EMBEDDINGS_MODEL=all-minilm
-RACE_BASELINE=gemini        # optional: race Gemma-on-AMD vs the Google-hosted GPU baseline
 ```
 Then run the pipeline end-to-end to confirm Gemma (reasoning + vision) and embeddings are
 all executing on the AMD MI300X.

@@ -93,7 +93,6 @@ export const api = {
   defaults: () => fetch("/api/demo/defaults").then(j<any>),
   config: () => fetch("/api/config").then(j<{ google_maps_api_key: string }>),
   health: () => fetch("/api/health").then(j<any>),
-  raceInfo: () => fetch("/api/race/info").then(j<any>),
   createAnalysis: (body: any) =>
     fetch("/api/analyses", {
       method: "POST",

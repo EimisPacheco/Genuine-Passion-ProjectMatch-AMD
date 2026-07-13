@@ -1,7 +1,7 @@
 """Shared helpers for agents: text building and heuristic tagging fallback.
 
-Heuristics let the pipeline run (and tests pass) without an Anthropic key, while
-Claude is used for the richer extraction when available.
+Heuristics let the pipeline run (and tests pass) with no LLM reachable, while
+Gemma on the AMD MI300X does the richer extraction when available.
 """
 from __future__ import annotations
 

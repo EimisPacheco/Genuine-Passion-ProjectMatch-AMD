@@ -28,9 +28,10 @@ embeddings (`all-minilm`) served by **Ollama on the same MI300X** — all on **R
   claim links to a real URL.
 - **Multi-agent + multimodal.** Ten specialized LangGraph agents; a Visual Portfolio
   agent reads architecture diagrams and screenshots with Gemma vision.
-- **Hardware, side by side.** The `/race` page runs the *same* Gemma task on the
-  **AMD MI300X** vs a **GPU baseline (Google-hosted Gemma)** side by side, live
-  tokens/sec — set `RACE_BASELINE=gemini`.
+- **Three modalities, one GPU.** Reasoning, vision *and* embeddings all run on the
+  **AMD Instinct MI300X** via Ollama/ROCm — verified with `rocm-smi` and `ollama ps`
+  (gemma4:31b, 100% GPU-resident). Track 3 does not score speed, so there is no
+  benchmark showcase.
 - **Genuinely adaptive.** Tested with real builders across multiple domains against
   different projects; the right specialist tops their own project every time.
 

@@ -16,7 +16,7 @@ from typing import Any
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import FileResponse, Response, StreamingResponse
 
-from backend.app import analyses, progress, race, store
+from backend.app import analyses, progress, store
 from backend.app.api.schemas import AnalysisIn, ProjectIn
 from backend.app.config import settings
 from integrations.scrapers import demo_loader
@@ -46,45 +46,6 @@ def public_config() -> dict[str, Any]:
     """Client-safe config for the frontend. The Maps key is a referrer-restricted
     browser key, so serving it here is expected (not a server secret)."""
     return {"google_maps_api_key": settings.google_maps_api_key}
-
-
-# ----------------------------- speed race -----------------------------
-@router.get("/race/info")
-def race_info() -> dict[str, Any]:
-    """Provider availability, models, and the demo candidate pool for the race UI."""
-    return race.race_info()
-
-
-@router.get("/race/stream")
-async def race_stream(max_tokens: int = 160) -> StreamingResponse:
-    """SSE: Gemma on AMD vs the GPU baseline over the same Gemma task, one instant."""
-    return StreamingResponse(
-        (chunk async for chunk in race.stream_race(max_tokens=max_tokens)),
-        media_type="text/event-stream",
-        headers={
-            "Cache-Control": "no-cache",
-            "Connection": "keep-alive",
-            "X-Accel-Buffering": "no",
-        },
-    )
-
-
-@router.get("/analyses/{analysis_id}/race/info")
-def analysis_race_info(analysis_id: str) -> dict[str, Any]:
-    """Race info scoped to a specific analysis's project + candidates."""
-    project, pool = race.build_from_analysis(analysis_id)
-    return race.race_info(project, pool)
-
-
-@router.get("/analyses/{analysis_id}/race/stream")
-async def analysis_race_stream(analysis_id: str, max_tokens: int = 160) -> StreamingResponse:
-    """SSE: Gemma on AMD vs GPU baseline over THIS analysis's candidates."""
-    project, pool = race.build_from_analysis(analysis_id)
-    return StreamingResponse(
-        (chunk async for chunk in race.stream_race(max_tokens, project, pool)),
-        media_type="text/event-stream",
-        headers={"Cache-Control": "no-cache", "Connection": "keep-alive", "X-Accel-Buffering": "no"},
-    )
 
 
 @router.get("/demo/defaults")

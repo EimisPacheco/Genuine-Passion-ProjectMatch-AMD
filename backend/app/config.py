@@ -1,6 +1,6 @@
 """Central configuration loaded from environment / .env.
 
-No keys are required for the seeded demo. Each integration reads its keys here
+Each integration reads its keys here
 and degrades gracefully when they are absent (see the `*_enabled` helpers).
 """
 from __future__ import annotations
@@ -22,20 +22,16 @@ class Settings(BaseSettings):
     # LLM — provider selection (amd = primary: Gemma on the AMD MI300X)
     llm_provider: str = "amd"  # amd | gemini
 
-    # Speed-race GPU baseline (right-hand side): auto | gemini (Gemma on Google's GPU)
-    race_baseline: str = "auto"
-
     # Gemma on the AMD MI300X via Ollama (ROCm), OpenAI-compatible. Set
-    # AMD_LLM_BASE_URL to the Ollama endpoint (…/v1); reasoning on gemma4:31b
-    # (thinking mode), vision on gemma3:12b.
+    # AMD_LLM_BASE_URL to the Ollama endpoint (…/v1). gemma4:31b does both
+    # reasoning and vision.
     amd_llm_base_url: str = ""
     amd_llm_api_key: str = "ollama"
     amd_llm_model: str = "gemma4:31b"
-    amd_llm_vision_model: str = "gemma3:12b"
+    amd_llm_vision_model: str = "gemma4:31b"
 
-    # Google (GPU baseline for the speed race — OpenAI-compatible endpoint).
-    # Default is Gemma 4 31B served by Google = the SAME Gemma we serve on AMD,
-    # so the race is apples-to-apples (hardware is the only variable).
+    # Google (Gemini) — OpenAI-compatible endpoint; the vision fallback when
+    # the AMD tunnel is unreachable.
     gemini_api_key: str = ""
     gemini_base_url: str = "https://generativelanguage.googleapis.com/v1beta/openai"
     gemini_model: str = "gemma-4-31b-it"

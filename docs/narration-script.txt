@@ -16,6 +16,8 @@ Then ten agents go to work, coordinated by LangGraph. They read repositories, ha
 
 Every score cites a real URL — click any one and it tells you exactly why. Eighteen tests fail the build if anything is invented.
 
+And the shortlist becomes a narrated video, captioned twice — once for a technical hiring manager, once for HR.
+
 All of it runs on AMD. Gemma 4, thirty-one billion parameters, open weights, on ROCm, on an AMD Instinct MI300X. Reasoning, vision, and embeddings — three modalities, one GPU.
 
 Here's why it deserves to win. It solves a real, expensive problem — every company struggles to find the right people, and the best ones are invisible to the job boards. And it makes that search faster, simpler, and accessible to everyone: a solo founder with no budget and no recruiter can do in a few minutes what used to take a team.

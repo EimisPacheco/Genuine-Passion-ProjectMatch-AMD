@@ -138,6 +138,18 @@ def talent_pool(limit: int = 300) -> list[dict[str, Any]]:
     return profiles[:limit]
 
 
+def known_handles() -> set[str]:
+    """Lower-cased GitHub handles already saved in the pool. Free Discovery filters
+    these out so it surfaces *new* people instead of re-listing the ones we already have."""
+    if not available():
+        return set()
+    rows = fetch(
+        "SELECT DISTINCT lower(github_handle) AS h FROM candidate_profiles "
+        "WHERE github_handle IS NOT NULL AND github_handle <> ''"
+    )
+    return {r["h"] for r in rows if r.get("h")}
+
+
 def recent_candidate(github_handle: str, days: int = 30) -> dict[str, Any] | None:
     """A previously-investigated candidate whose evidence is still fresh — so a new
     run can reuse it instead of re-scraping. Returns {profile, evidence} or None."""

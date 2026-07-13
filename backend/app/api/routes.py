@@ -89,10 +89,19 @@ async def create_analysis(payload: AnalysisIn) -> dict[str, Any]:
         from integrations.scrapers import github_api
 
         pool_size = min(max(payload.top_n * 2, 6), 18)
-        sources = github_api.search_candidates(company, limit=pool_size)
+        # Over-fetch, then drop anyone already in the pool so discovery surfaces
+        # *new* people rather than re-listing candidates we've already saved.
+        found = github_api.search_candidates(company, limit=pool_size + 15)
+        known = store.known_handles()
+        fresh = [s for s in found if (s.get("github_handle", "").lower() not in known)]
+        sources = fresh[:pool_size]
         if not sources:
+            already = bool(found) and not fresh
             raise HTTPException(
-                422, "No candidates found for this mission. Add more specific "
+                422,
+                "Everyone we found for this mission is already in your talent pool — "
+                "browse it directly." if already else
+                "No candidates found for this mission. Add more specific "
                 "technologies to the project, or use the Applicants tab.",
             )
         live_mode = True  # discovered people have no seeded evidence

@@ -25,6 +25,22 @@ the **AMD MI300X** (`all-minilm` via Ollama, 384-dim), matched to the project wi
 **Cloud SQL pgvector** similarity search, scored for genuine passion / Code / Design fit,
 ranked with cited evidence, and turned into a narrated recommendation video.
 
+## Why it deserves to win
+This solves a **real, expensive problem**: every company struggles to find the right
+people, and the best builders are invisible to job boards because they never apply. The
+kind of sourcing that used to need a recruiter, a budget, and days of manual digging is
+here made **faster, simpler, and accessible to everyone** — a solo founder with no budget
+and no brand can paste a mission and get a ranked, contactable, evidence-cited shortlist
+in minutes. It's original (everyone else screens the applicants you already have; we find
+the ones who never applied), complete (a live, deployed product — not a notebook), and
+built end-to-end on the **AMD MI300X**.
+
+And it's personal. I'm a highly motivated builder — I ship at midnight and enter
+hackathons for the love of it, and this project matters a lot to me because of that.
+Sometimes the most motivated people in the world are the ones you have to go and *find*.
+This is the tool I wish existed: to find people like me, and to let people like me be
+*found* for the work they actually do.
+
 ## How I built it
 - **AMD MI300X — GPU inference.** Candidate and project text are
   embedded (`all-minilm`, 384-dim) by **Ollama on the AMD MI300X** ([amd/](../amd/)).

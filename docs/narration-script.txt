@@ -18,9 +18,9 @@ Every score cites a real URL — click any one and it tells you exactly why. Eig
 
 All of it runs on AMD. Gemma 4, thirty-one billion parameters, open weights, on ROCm, on an AMD Instinct MI300X. Reasoning, vision, and embeddings — three modalities, one GPU.
 
-Here's why it should win. It's complete — a live product, not a notebook. It's original — everyone else filters applicants; we find the ones who never applied. And it has a market — every startup is losing the talent war on salary, and this hands them the one advantage money can't buy.
+Here's why it deserves to win. It solves a real, expensive problem — every company struggles to find the right people, and the best ones are invisible to the job boards. And it makes that search faster, simpler, and accessible to everyone: a solo founder with no budget and no recruiter can do in a few minutes what used to take a team.
 
-And here's the part I know first-hand. Sometimes the most motivated people in the world are the ones you have to find — the builders who ship at midnight and enter hackathons for the love of it, not to get hired. I'm one of them. I build because I can't not. This is the tool I wish existed: to find people like me, and to let people like me be found for the work they actually do.
+And it matters to me, deeply. I'm a highly motivated person — I build because I can't not, and I enter hackathons for the love of it. Sometimes the most motivated people in the world are the ones you have to go and find. This is the tool I wish existed: to find people like me, and to let people like me be found for the work they actually do.
 
 Resumes tell you what people want you to believe.
 

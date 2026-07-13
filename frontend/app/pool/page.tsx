@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { api, PoolCandidate, PoolDetail } from "@/lib/api";
 
 /**
@@ -15,10 +16,20 @@ export default function PoolPage() {
   const [q, setQ] = useState("");
   const [onlyContactable, setOnlyContactable] = useState(false);
   const [openId, setOpenId] = useState<string | null>(null);
+  const [lastAnalysisId, setLastAnalysisId] = useState<string | null>(null);
+  const router = useRouter();
 
   useEffect(() => {
     api.pool().then((r) => setPool(r.candidates)).catch(() => setPool([]));
+    try { setLastAnalysisId(sessionStorage.getItem("lastAnalysisId")); } catch {}
   }, []);
+
+  // Return to the search the user came from — their current analysis if we know it,
+  // otherwise just step back in history.
+  const goBack = () => {
+    if (lastAnalysisId) router.push(`/analysis/${lastAnalysisId}`);
+    else router.back();
+  };
 
   const shown = useMemo(() => {
     if (!pool) return [];
@@ -41,6 +52,9 @@ export default function PoolPage() {
 
   return (
     <div className="space-y-5">
+      <button onClick={goBack} className="flex items-center gap-1.5 text-sm text-slate-400 hover:text-brand">
+        ← {lastAnalysisId ? "Back to your search" : "Back"}
+      </button>
       <div>
         <h1 className="text-2xl font-bold text-slate-100">Talent pool</h1>
         <p className="mt-1 text-sm text-slate-400">

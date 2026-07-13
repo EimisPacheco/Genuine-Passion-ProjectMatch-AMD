@@ -25,6 +25,12 @@ export default function AnalysisPage({ params }: { params: { id: string } }) {
   const loadedRef = useRef(false);
   const startedRef = useRef<number>(Date.now());
 
+  // Remember this analysis so the Talent Pool's back arrow can return here
+  // (rather than dumping the user on the home page).
+  useEffect(() => {
+    try { sessionStorage.setItem("lastAnalysisId", id); } catch {}
+  }, [id]);
+
   // Elapsed-time clock: ticks while the analysis runs, freezes on done/error.
   useEffect(() => {
     if (status !== "running") return;

@@ -160,7 +160,11 @@ Then:
 
 Every run is **live** (real scraping + Gemma on one GPU, so it takes a few
 minutes). Every discovered candidate — with their contact trail — is persisted to
-Cloud SQL, so a shared analysis link survives a restart.
+Cloud SQL as a reusable **talent pool** (deduped by GitHub handle): browse everyone
+ever found on the **🗂 Talent pool** page instead of re-searching, a repeat
+investigation **reuses** what's already known instead of re-scraping, and **Free
+Discovery skips people already in the pool** so each run surfaces *new* builders. A
+shared analysis link survives a restart.
 
 ---
 
@@ -196,4 +200,4 @@ pytest -q        # 18 tests, incl. tests/test_no_hallucination.py
 
 ---
 
-More: [docs/DEPLOY.md](docs/DEPLOY.md) · [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) · [docs/AMD_SUBMISSION.md](docs/AMD_SUBMISSION.md)
+More: [docs/DEPLOY.md](docs/DEPLOY.md) · [docs/AMD_SUBMISSION.md](docs/AMD_SUBMISSION.md) · [docs/DEVPOST.md](docs/DEVPOST.md)

@@ -107,7 +107,7 @@ See [docs/DEPLOY.md](docs/DEPLOY.md).
 
 | What | Where | Notes |
 |---|---|---|
-| **Gemma 4 31B** (`gemma4:31b`, open weights) | **Ollama + ROCm** on the **AMD Instinct MI300X** (AMD Developer Cloud) | Reasoning **and** vision — one open model does both, 100% resident on the GPU |
+| **Gemma 4 31B** (`gemma4:31b`, open weights) | **Ollama + ROCm** on the **AMD Instinct MI300X** (AMD Developer Cloud) | Reasoning **and** vision — one open model does both, 100% resident on the GPU; serves **4 requests concurrently** (`OLLAMA_NUM_PARALLEL=4`), so per-repo analysis and vision run in parallel |
 | **AMD GPU embeddings** | `all-minilm` via Ollama on the **same MI300X** | 384-dim, feeds pgvector — the third modality on the same AMD GPU |
 | **Google Cloud SQL (PostgreSQL + pgvector)** | GCP | Evidence, scores, embeddings, vector search — and whole analyses, so a shared link survives a restart |
 | **Google Cloud Text-to-Speech** | GCP | `en-US-Studio-O` — the video's narrator |
@@ -158,10 +158,14 @@ Then:
    **two audiences** — a *technical hiring manager* and an *HR recruiter* — with the
    captions and the narration script **synced to playback**.
 
+Candidates are shown by their **real name** (read from their GitHub profile), not
+their login handle.
+
 Every run is **live** (real scraping + Gemma on one GPU, so it takes a few
 minutes). Every discovered candidate — with their contact trail — is persisted to
 Cloud SQL as a reusable **talent pool** (deduped by GitHub handle): browse everyone
-ever found on the **🗂 Talent pool** page instead of re-searching, a repeat
+ever found on the **🗂 Talent pool** page instead of re-searching, **click anyone to
+see them exactly as first found** (their full evidence trail), a repeat
 investigation **reuses** what's already known instead of re-scraping, and **Free
 Discovery skips people already in the pool** so each run surfaces *new* builders. A
 shared analysis link survives a restart.

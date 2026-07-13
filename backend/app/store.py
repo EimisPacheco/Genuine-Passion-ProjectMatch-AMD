@@ -103,28 +103,36 @@ def talent_pool(limit: int = 300) -> list[dict[str, Any]]:
     id (profiles are written once per analysis, so the same person recurs)."""
     if not available():
         return []
+    # Dedup by GitHub handle (the stable identity — the same person can get a
+    # different row id across analyses), preferring the row that has a LinkedIn.
+    key = "COALESCE(NULLIF(github_handle, ''), id)"
     profiles = fetch(
-        "SELECT DISTINCT ON (id) id, name, github_handle, headline, location, city, "
+        f"SELECT DISTINCT ON ({key}) id, name, github_handle, headline, location, city, "
         "state, country, email, linkedin_url, created_at "
         "FROM candidate_profiles WHERE id <> '' "
-        "ORDER BY id, created_at DESC"
+        f"ORDER BY {key}, (linkedin_url IS NOT NULL AND linkedin_url <> '') DESC, created_at DESC"
     )
+    # Aggregate evidence by the SAME handle key, so a person split across ids merges.
+    ekey = "COALESCE(NULLIF(p.github_handle, ''), p.id)"
     ev = fetch(
-        "SELECT candidate_id, count(DISTINCT url) AS n, "  # DISTINCT url: dup rows don't inflate
-        "array_remove(array_agg(DISTINCT source), NULL) AS sources "
-        "FROM candidate_evidence GROUP BY candidate_id"
+        f"SELECT {ekey} AS k, count(DISTINCT e.url) AS n, "
+        "array_remove(array_agg(DISTINCT e.source), NULL) AS sources "
+        "FROM candidate_evidence e JOIN candidate_profiles p ON p.id = e.candidate_id "
+        f"GROUP BY {ekey}"
     )
     tech = fetch(
-        "SELECT candidate_id, array_agg(DISTINCT t) AS techs "
-        "FROM candidate_evidence, unnest(technologies) AS t GROUP BY candidate_id"
+        f"SELECT {ekey} AS k, array_agg(DISTINCT t) AS techs "
+        "FROM candidate_evidence e JOIN candidate_profiles p ON p.id = e.candidate_id, "
+        f"unnest(e.technologies) AS t GROUP BY {ekey}"
     )
-    ev_by = {r["candidate_id"]: r for r in ev}
-    tech_by = {r["candidate_id"]: (r.get("techs") or []) for r in tech}
+    ev_by = {r["k"]: r for r in ev}
+    tech_by = {r["k"]: (r.get("techs") or []) for r in tech}
     for p in profiles:
-        e = ev_by.get(p["id"], {})
+        k = p.get("github_handle") or p["id"]
+        e = ev_by.get(k, {})
         p["evidence_count"] = int(e.get("n", 0) or 0)
         p["sources"] = e.get("sources") or []
-        p["technologies"] = tech_by.get(p["id"], [])[:24]
+        p["technologies"] = tech_by.get(k, [])[:24]
         p["contactable"] = bool(p.get("linkedin_url"))
     profiles.sort(key=lambda p: str(p.get("created_at", "")), reverse=True)
     return profiles[:limit]

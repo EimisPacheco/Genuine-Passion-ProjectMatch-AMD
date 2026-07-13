@@ -150,6 +150,43 @@ def known_handles() -> set[str]:
     return {r["h"] for r in rows if r.get("h")}
 
 
+def candidate_detail(cid: str) -> dict[str, Any] | None:
+    """A single pool candidate as first found — their profile plus every evidence
+    item we ever discovered for that person (merged across any id that shares their
+    GitHub handle, deduped by URL). Powers the Talent Pool detail view."""
+    if not available() or not cid:
+        return None
+    prof = fetch(
+        "SELECT id, name, github_handle, headline, location, city, state, country, "
+        "email, linkedin_url, created_at FROM candidate_profiles WHERE id = %(id)s LIMIT 1",
+        {"id": cid},
+    )
+    if not prof:
+        return None
+    p = prof[0]
+    handle = p.get("github_handle") or ""
+    cols = ("e.id, e.source, e.title, e.url, e.description, e.technologies, "
+            "e.domain_tags, e.evidence_date, e.confidence, e.created_at")
+    if handle:
+        ev = fetch(
+            f"SELECT DISTINCT ON (COALESCE(NULLIF(e.url, ''), e.id)) {cols} "
+            "FROM candidate_evidence e JOIN candidate_profiles p ON p.id = e.candidate_id "
+            "WHERE p.github_handle = %(h)s "
+            "ORDER BY COALESCE(NULLIF(e.url, ''), e.id), e.created_at DESC",
+            {"h": handle},
+        )
+    else:
+        ev = fetch(
+            f"SELECT {cols.replace('e.', '')} FROM candidate_evidence "
+            "WHERE candidate_id = %(id)s",
+            {"id": cid},
+        )
+    # Newest, most-confident evidence first — the strongest signal reads at the top.
+    ev.sort(key=lambda e: (str(e.get("evidence_date", "")), float(e.get("confidence", 0) or 0)),
+            reverse=True)
+    return {"profile": p, "evidence": ev}
+
+
 def recent_candidate(github_handle: str, days: int = 30) -> dict[str, Any] | None:
     """A previously-investigated candidate whose evidence is still fresh — so a new
     run can reuse it instead of re-scraping. Returns {profile, evidence} or None."""

@@ -182,17 +182,55 @@ def _reasons(
     ex = [h.get("execution_quality") for h in hack if h.get("execution_quality") is not None]
     avg_conf = sum(float(e.get("confidence", 0.6)) for e in items) / n if n else 0.0
 
+    # --- extra signals so Code and Project-similarity can say WHY, not just "average of N" ---
+    from collections import Counter
+    mats = Counter((g.get("maturity") or "").lower() for g in gh if g.get("maturity"))
+    stars = sum(int(g.get("stars", 0) or 0) for g in gh)
+    best = max(gh, key=lambda g: float(g.get("quality_score") or 0.0), default=None) if gh else None
+    best_name = (best.get("repo_full_name") or "").strip() if best else ""
+    best_arch = (best.get("architecture_profile") or "").strip().rstrip(". ") if best else ""
+    emb = float(s.get("embedding_similarity", s.get("mission_similarity", 0.0)) or 0.0)
+    dsim = float(s.get("domain_similarity", 0.0) or 0.0)
+    tsim = float(s.get("technology_similarity", 0.0) or 0.0)
+    fsim = float(s.get("feature_similarity", 0.0) or 0.0)
+
     def lst(xs: list[str], k: int = 4) -> str:
         return ", ".join(xs[:k]) + ("…" if len(xs) > k else "")
+
+    # Code score — what the number actually reflects, per repo.
+    if qs:
+        mat_desc = ", ".join(f"{c} {name}" for name, c in mats.most_common()) if mats else ""
+        code_reason = (
+            f"Gemma read {_plural(len(qs), 'repository', 'repositories')} and scored each for "
+            "engineering quality — code structure, docs, tests and architecture; this is the average"
+            + (f" ({mat_desc} by maturity)" if mat_desc else "") + "."
+        )
+        if best_name:
+            code_reason += f" Strongest is {best_name}" + (f" — {best_arch[:140]}" if best_arch else "") + "."
+        if stars > 0:
+            code_reason += f" {stars:,} GitHub stars across these repos."
+    else:
+        code_reason = (
+            "No repositories were deep-analysed here, so this is estimated from their technology "
+            "depth and how consistently they build — treat it as a floor, not a measured value."
+        )
+
+    # Project similarity — the exact recipe behind the percentage.
+    proj_reason = (
+        "How close their public work sits to your mission. The largest input (55% of the score) is "
+        f"semantic — the embedding of their strongest evidence is {emb:.0%} similar to the project "
+        f"description. Tag overlap supplies the rest: domain {dsim:.0%}, technology {tsim:.0%}, "
+        f"features {fsim:.0%}. "
+        + (f"Shared ground: {lst(dom_hit)}" + (f"; {lst(tech_hit)}" if tech_hit else "") + "."
+           if (dom_hit or tech_hit) else
+           "Barely any tag overlap — the match is almost entirely semantic, so open the evidence to judge fit yourself.")
+    )
 
     return {
         "overall_score":
             "Weighted blend: project fit 40%, genuine passion 25%, domain 15%, "
             "technology 10%, innovation 5%, evidence quality 5%.",
-        "project_similarity":
-            "How close their work is to the mission: 55% semantic similarity (embeddings "
-            f"on the MI300X), plus tag overlap on domain, technology and features. "
-            f"Matched domains: {lst(dom_hit) or 'none'}.",
+        "project_similarity": proj_reason,
         "genuine_passion":
             "Do they keep choosing this problem? Blends how much of their work touches the "
             f"project's domains, how consistently they build, and how much is self-initiated "
@@ -205,16 +243,13 @@ def _reasons(
             (f"{len(tech_hit)} of {len(proj_techs)} project technologies appear in their work: {lst(tech_hit)}."
              if tech_hit else
              f"None of the project's {len(proj_techs)} technologies appear in their evidence."),
-        "code_score":
-            (f"Average engineering quality across {len(qs)} analysed repositories."
-             if qs else
-             "No repository analysis available — estimated from their technology depth and "
-             "how consistently they build."),
+        "code_score": code_reason,
         "design_score":
-            (f"Average polish Gemma's vision model saw across {_plural(len(pol), 'portfolio image', 'portfolio images')}"
-             + (f", plus execution quality from {_plural(len(ex), 'hackathon project', 'hackathon projects')}." if ex else ".")
+            (f"Gemma's vision model looked at {_plural(len(pol), 'portfolio image', 'portfolio images')} "
+             "(architecture diagrams, product screenshots) and rated their visual polish and rigor"
+             + (f", averaged with execution quality from {_plural(len(ex), 'hackathon project', 'hackathon projects')}." if ex else ".")
              if pol else
-             "No portfolio images were readable — estimated from innovation and voluntary effort."),
+             "No portfolio images were readable, so this is estimated from innovation and voluntary effort."),
         "builder_consistency":
             f"{_plural(n, 'piece', 'pieces')} of public work spanning "
             f"{_plural(span, 'month', 'months')}. Full marks needs ~6 items across a year or more.",

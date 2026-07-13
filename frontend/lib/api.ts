@@ -108,10 +108,32 @@ export type PoolCandidate = {
   technologies: string[];
 };
 
+/** One evidence item exactly as it was first discovered for a pool candidate. */
+export type PoolEvidence = {
+  id: string;
+  source: string;
+  title: string;
+  url: string;
+  description: string;
+  technologies: string[];
+  domain_tags: string[];
+  evidence_date: string;
+  confidence: number;
+};
+
+export type PoolDetail = {
+  profile: Omit<PoolCandidate, "contactable" | "evidence_count" | "sources" | "technologies"> & {
+    created_at?: string;
+  };
+  evidence: PoolEvidence[];
+};
+
 export const api = {
   defaults: () => fetch("/api/demo/defaults").then(j<any>),
   // The persistent talent pool — everyone found across all analyses.
   pool: () => fetch("/api/candidates").then(j<{ candidates: PoolCandidate[] }>),
+  // One pool candidate as first found — profile + full evidence trail.
+  poolCandidate: (id: string) => fetch(`/api/candidates/${id}`).then(j<PoolDetail>),
   config: () => fetch("/api/config").then(j<{ google_maps_api_key: string }>),
   health: () => fetch("/api/health").then(j<any>),
   createAnalysis: (body: any) =>

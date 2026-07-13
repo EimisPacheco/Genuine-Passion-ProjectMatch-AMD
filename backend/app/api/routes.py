@@ -55,6 +55,15 @@ def talent_pool() -> dict[str, Any]:
     return {"candidates": store.talent_pool()}
 
 
+@router.get("/candidates/{candidate_id}")
+def pool_candidate(candidate_id: str) -> dict[str, Any]:
+    """A single pool candidate as first found — profile + full evidence trail."""
+    detail = store.candidate_detail(candidate_id)
+    if not detail:
+        raise HTTPException(404, "candidate not found")
+    return detail
+
+
 @router.get("/demo/defaults")
 def demo_defaults() -> dict[str, Any]:
     return {

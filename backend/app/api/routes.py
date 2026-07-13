@@ -48,6 +48,13 @@ def public_config() -> dict[str, Any]:
     return {"google_maps_api_key": settings.google_maps_api_key}
 
 
+@router.get("/candidates")
+def talent_pool() -> dict[str, Any]:
+    """Every candidate ever discovered, across all analyses — the persistent talent
+    pool. Lets a recruiter browse who's already been found instead of re-searching."""
+    return {"candidates": store.talent_pool()}
+
+
 @router.get("/demo/defaults")
 def demo_defaults() -> dict[str, Any]:
     return {

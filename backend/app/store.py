@@ -97,6 +97,64 @@ def load_analysis(analysis_id: str) -> dict[str, Any] | None:
         return None
 
 
+def talent_pool(limit: int = 300) -> list[dict[str, Any]]:
+    """Every distinct candidate ever discovered, newest first, with a summary of
+    their evidence — the persistent talent graph across all analyses. Deduped by
+    id (profiles are written once per analysis, so the same person recurs)."""
+    if not available():
+        return []
+    profiles = fetch(
+        "SELECT DISTINCT ON (id) id, name, github_handle, headline, location, city, "
+        "state, country, email, linkedin_url, created_at "
+        "FROM candidate_profiles WHERE id <> '' "
+        "ORDER BY id, created_at DESC"
+    )
+    ev = fetch(
+        "SELECT candidate_id, count(DISTINCT url) AS n, "  # DISTINCT url: dup rows don't inflate
+        "array_remove(array_agg(DISTINCT source), NULL) AS sources "
+        "FROM candidate_evidence GROUP BY candidate_id"
+    )
+    tech = fetch(
+        "SELECT candidate_id, array_agg(DISTINCT t) AS techs "
+        "FROM candidate_evidence, unnest(technologies) AS t GROUP BY candidate_id"
+    )
+    ev_by = {r["candidate_id"]: r for r in ev}
+    tech_by = {r["candidate_id"]: (r.get("techs") or []) for r in tech}
+    for p in profiles:
+        e = ev_by.get(p["id"], {})
+        p["evidence_count"] = int(e.get("n", 0) or 0)
+        p["sources"] = e.get("sources") or []
+        p["technologies"] = tech_by.get(p["id"], [])[:24]
+        p["contactable"] = bool(p.get("linkedin_url"))
+    profiles.sort(key=lambda p: str(p.get("created_at", "")), reverse=True)
+    return profiles[:limit]
+
+
+def recent_candidate(github_handle: str, days: int = 30) -> dict[str, Any] | None:
+    """A previously-investigated candidate whose evidence is still fresh — so a new
+    run can reuse it instead of re-scraping. Returns {profile, evidence} or None."""
+    if not available() or not github_handle:
+        return None
+    prof = fetch(
+        "SELECT DISTINCT ON (id) id, name, github_handle, headline, location, city, "
+        "state, country, email, linkedin_url FROM candidate_profiles "
+        "WHERE github_handle = %(h)s ORDER BY id, created_at DESC LIMIT 1",
+        {"h": github_handle},
+    )
+    if not prof:
+        return None
+    ev = fetch(
+        "SELECT id, source, title, url, description, technologies, domain_tags, "
+        "feature_tags, evidence_date, confidence FROM candidate_evidence "
+        "WHERE candidate_id = %(cid)s AND created_at > now() - make_interval(days => %(d)s) "
+        "ORDER BY created_at DESC",
+        {"cid": prof[0]["id"], "d": days},
+    )
+    if not ev:
+        return None
+    return {"profile": prof[0], "evidence": ev}
+
+
 def agent_runs(analysis_id: str) -> list[dict[str, Any]]:
     if not available():
         return []

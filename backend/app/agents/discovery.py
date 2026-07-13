@@ -51,18 +51,30 @@ def run(state: ProjectMatchState) -> dict[str, Any]:
     with agent_step("evidence_discovery", analysis_id, f"{len(candidates)} candidates") as h:
         emb_rows: list[dict[str, Any]] = []
         live_mode = state.get("live_mode")
+        reused_count = 0
         for cand in candidates:
             cid = cand["id"]
-            _enrich_contact(cand, live_mode)
-            items = dispatch.discover(cand, live_mode=live_mode)
-            # Fallback: if the GitHub profile gave no LinkedIn, find it by web search
-            # (Bright Data SERP + Gemma verify) — motivated builders link their repos
-            # on LinkedIn, so their profile is the top result for name + stack.
-            if live_mode and not cand.get("linkedin_url") and settings.brightdata_enabled and cand.get("name"):
-                tech = [t for e in items for t in e.get("technologies", []) if t][:5]
-                found = linkedin_finder.find(cand["name"], tech, cand.get("github_handle", ""))
-                if found:
-                    cand["linkedin_url"] = found
+            handle = cand.get("github_handle", "")
+            # Reuse: if we already investigated this person recently, load the saved
+            # evidence instead of re-scraping GitHub and re-running the LinkedIn search.
+            reused = store.recent_candidate(handle, days=30) if (live_mode and handle) else None
+            if reused:
+                reused_count += 1
+                items = [dict(e) for e in reused["evidence"]]
+                prof = reused["profile"]
+                for k in ("linkedin_url", "location", "city", "state", "country", "email"):
+                    cand[k] = cand.get(k) or prof.get(k, "")
+            else:
+                _enrich_contact(cand, live_mode)
+                items = dispatch.discover(cand, live_mode=live_mode)
+                # Fallback: if the GitHub profile gave no LinkedIn, find it by web search
+                # (Bright Data SERP + Gemma verify) — motivated builders link their repos
+                # on LinkedIn, so their profile is the top result for name + stack.
+                if live_mode and not cand.get("linkedin_url") and settings.brightdata_enabled and cand.get("name"):
+                    tech = [t for e in items for t in e.get("technologies", []) if t][:5]
+                    found = linkedin_finder.find(cand["name"], tech, handle)
+                    if found:
+                        cand["linkedin_url"] = found
             for ev in items:
                 # Tag live evidence from the shared vocab (seeded evidence already
                 # carries hand-authored tags) so domain/technology relevance flows
@@ -88,46 +100,49 @@ def run(state: ProjectMatchState) -> dict[str, Any]:
             evidence_map[cid] = items
 
             # Persist the whole person, contact trail included — a candidate found by
-            # Free Discovery is only useful later if we kept how to reach them.
-            store.save(
-                "candidate_profiles",
-                {
-                    "id": cid,
-                    "name": cand.get("name", cid),
-                    "headline": cand.get("headline", ""),
-                    "sources": cand.get("sources", []),
-                    "github_handle": cand.get("github_handle", ""),
-                    "location": cand.get("location", ""),
-                    "city": cand.get("city", ""),
-                    "state": cand.get("state", ""),
-                    "country": cand.get("country", ""),
-                    "email": cand.get("email", ""),
-                    "linkedin_url": cand.get("linkedin_url", ""),
-                },
-            )
-            store.save_many(
-                "candidate_evidence",
-                [
+            # Free Discovery is only useful later if we kept how to reach them. Skip
+            # when reused: it is already in the pool, and re-writing would duplicate.
+            if not reused:
+                store.save(
+                    "candidate_profiles",
                     {
-                        "id": ev["id"],
-                        "candidate_id": cid,
-                        "source": ev.get("source", ""),
-                        "title": ev.get("title", ""),
-                        "url": ev.get("url", ""),
-                        "description": ev.get("description", ""),
-                        "technologies": ev.get("technologies", []),
-                        "domain_tags": ev.get("domain_tags", []),
-                        "feature_tags": ev.get("feature_tags", []),
-                        "evidence_date": ev.get("evidence_date", ""),
-                        "confidence": float(ev.get("confidence", 0.6)),
-                    }
-                    for ev in items
-                ],
-            )
+                        "id": cid,
+                        "name": cand.get("name", cid),
+                        "headline": cand.get("headline", ""),
+                        "sources": cand.get("sources", []),
+                        "github_handle": handle,
+                        "location": cand.get("location", ""),
+                        "city": cand.get("city", ""),
+                        "state": cand.get("state", ""),
+                        "country": cand.get("country", ""),
+                        "email": cand.get("email", ""),
+                        "linkedin_url": cand.get("linkedin_url", ""),
+                    },
+                )
+                store.save_many(
+                    "candidate_evidence",
+                    [
+                        {
+                            "id": ev["id"],
+                            "candidate_id": cid,
+                            "source": ev.get("source", ""),
+                            "title": ev.get("title", ""),
+                            "url": ev.get("url", ""),
+                            "description": ev.get("description", ""),
+                            "technologies": ev.get("technologies", []),
+                            "domain_tags": ev.get("domain_tags", []),
+                            "feature_tags": ev.get("feature_tags", []),
+                            "evidence_date": ev.get("evidence_date", ""),
+                            "confidence": float(ev.get("confidence", 0.6)),
+                        }
+                        for ev in items
+                    ],
+                )
             profiles.append({k: v for k, v in cand.items()})
 
         store.save_many("project_embeddings", emb_rows)
         total = sum(len(v) for v in evidence_map.values())
-        h["summary"] = f"discovered {total} evidence items across {len(candidates)} candidates"
+        reuse = f" ({reused_count} reused from the pool)" if reused_count else ""
+        h["summary"] = f"discovered {total} evidence items across {len(candidates)} candidates{reuse}"
 
     return {"evidence": evidence_map, "candidates": profiles}

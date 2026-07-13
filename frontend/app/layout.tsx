@@ -30,6 +30,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <Link href="/" className="text-slate-400 hover:text-brand">
                 Investigate
               </Link>
+              <Link href="/pool" className="text-slate-400 hover:text-brand">
+                🗂 Talent pool
+              </Link>
             </nav>
           </header>
           {children}

@@ -91,8 +91,27 @@ async function j<T>(r: Response): Promise<T> {
   return r.json();
 }
 
+export type PoolCandidate = {
+  id: string;
+  name: string;
+  github_handle: string;
+  headline: string;
+  location?: string;
+  city?: string;
+  state?: string;
+  country?: string;
+  email?: string;
+  linkedin_url?: string;
+  contactable: boolean;
+  evidence_count: number;
+  sources: string[];
+  technologies: string[];
+};
+
 export const api = {
   defaults: () => fetch("/api/demo/defaults").then(j<any>),
+  // The persistent talent pool — everyone found across all analyses.
+  pool: () => fetch("/api/candidates").then(j<{ candidates: PoolCandidate[] }>),
   config: () => fetch("/api/config").then(j<{ google_maps_api_key: string }>),
   health: () => fetch("/api/health").then(j<any>),
   createAnalysis: (body: any) =>

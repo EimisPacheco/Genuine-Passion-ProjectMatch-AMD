@@ -19,13 +19,18 @@ _status: dict[str, str] = {}
 
 
 def emit(analysis_id: str, agent: str, status: str, step: int, detail: str = "") -> None:
+    # Percent tracks *completed* steps, not the one in flight. A step that is only
+    # "running" (e.g. the 10th agent rendering the video, which takes minutes) counts
+    # as step-1 done — so the bar never reads 100% while work is still happening. It
+    # reaches 100% only on an "ok"/"done" for the final step.
+    completed = step if status in ("ok", "done") else max(step - 1, 0)
     event = {
         "analysis_id": analysis_id,
         "agent": agent,
         "status": status,            # running | ok | error | done
         "step": step,
         "total": TOTAL_STEPS,
-        "percent": round(min(step, TOTAL_STEPS) / TOTAL_STEPS * 100),
+        "percent": round(min(completed, TOTAL_STEPS) / TOTAL_STEPS * 100),
         "detail": detail,
         "ts": time.time(),
     }

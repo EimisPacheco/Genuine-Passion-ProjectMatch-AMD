@@ -79,7 +79,10 @@ export default function AnalysisPage({ params }: { params: { id: string } }) {
     setTab("Rankings");
   }
 
-  const pctDone = events.length ? events[events.length - 1].percent : 0;
+  // Never show 100% while still running — 100% is reserved for the "done" state,
+  // so the bar can't sit full while the clock keeps ticking.
+  const lastPct = events.length ? events[events.length - 1].percent : 0;
+  const pctDone = status === "done" ? 100 : Math.min(lastPct, 99);
 
   return (
     <div>
